@@ -6,7 +6,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel1"
+version: "7.0.3-umbrel2"
 
 tagline: Run a Safex blockchain full node
 
@@ -20,7 +20,7 @@ developer: Safex community
 
 website: https://safex.org
 
-port: 80
+port: 17403
 
 dependencies: []
 
@@ -40,4 +40,4 @@ submitter: wg2kwf9fnz-wq
 
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
-releaseNotes: ""
+releaseNotes: "Fix Umbrel LAN ingress routing for the dashboard."
