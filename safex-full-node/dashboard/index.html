@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Safex Full Node</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #111;
+      color: #eee;
+      font-family: system-ui, sans-serif;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .status {
+      margin-bottom: 24px;
+      color: #aaa;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: #1c1c1c;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .label {
+      color: #999;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .value {
+      font-size: 24px;
+      font-weight: 600;
+      word-break: break-word;
+    }
+
+    .sync {
+      margin-top: 24px;
+    }
+
+    .bar {
+      height: 10px;
+      background: #333;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: #4caf50;
+    }
+
+    .error {
+      color: #f66;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Safex Full Node</h1>
+    <div id="status" class="status">Connecting to node...</div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">Network</div>
+        <div id="network" class="value">—</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Status</div>
+        <div id="nodeStatus" class="value">—</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Current Height</div>
+        <div id="height" class="value">—</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Target Height</div>
+        <div id="targetHeight" class="value">—</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Incoming Peers</div>
+        <div id="incoming" class="value">—</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Outgoing Peers</div>
+        <div id="outgoing" class="value">—</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Difficulty</div>
+        <div id="difficulty" class="value">—</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Transaction Pool</div>
+        <div id="txpool" class="value">—</div>
+      </div>
+    </div>
+
+    <div class="sync card">
+      <div class="label">Synchronization</div>
+      <div id="syncText" class="value">—</div>
+      <div class="bar">
+        <div id="progress" class="progress"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function update() {
+      try {
+        const response = await fetch('/api/get_info');
+        if (!response.ok) throw new Error('RPC request failed');
+
+        const data = await response.json();
+
+        document.getElementById('status').textContent =
+          data.offline ? 'Node is offline' : 'Node is connected';
+
+        document.getElementById('network').textContent =
+          data.mainnet ? 'Mainnet' : data.testnet ? 'Testnet' : 'Stagenet';
+
+        document.getElementById('nodeStatus').textContent = data.status;
+        document.getElementById('height').textContent =
+          Number(data.height).toLocaleString();
+        document.getElementById('targetHeight').textContent =
+          Number(data.target_height).toLocaleString();
+        document.getElementById('incoming').textContent =
+          data.incoming_connections_count;
+        document.getElementById('outgoing').textContent =
+          data.outgoing_connections_count;
+        document.getElementById('difficulty').textContent =
+          Number(data.difficulty).toLocaleString();
+        document.getElementById('txpool').textContent =
+          data.tx_pool_size;
+
+        const height = Number(data.height);
+        const target = Number(data.target_height);
+        const percent = target > 0
+          ? Math.min(100, (height / target) * 100)
+          : 0;
+
+        document.getElementById('syncText').textContent =
+          `${percent.toFixed(2)}%`;
+
+        document.getElementById('progress').style.width =
+          `${percent}%`;
+
+      } catch (error) {
+        document.getElementById('status').innerHTML =
+          '<span class="error">Unable to connect to Safex node</span>';
+      }
+    }
+
+    update();
+    setInterval(update, 10000);
+  </script>
+</body>
+</html>

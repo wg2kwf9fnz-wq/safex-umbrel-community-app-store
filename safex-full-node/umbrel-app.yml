@@ -1,0 +1,43 @@
+manifestVersion: 1
+
+id: safex-full-node
+
+category: finance
+
+name: Safex Full Node
+
+version: "7.0.3-umbrel1"
+
+tagline: Run a Safex blockchain full node
+
+description: >-
+  Run a Safex mainnet full node on your Umbrel. The node synchronizes
+  the Safex blockchain and participates in the peer-to-peer network.
+  Includes a read-only dashboard showing node status and synchronization
+  information.
+
+developer: Safex community
+
+website: https://safex.org
+
+port: 80
+
+dependencies: []
+
+repo: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
+
+support: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store/issues
+
+gallery: []
+
+path: ""
+
+defaultUsername: ""
+
+defaultPassword: ""
+
+submitter: wg2kwf9fnz-wq
+
+submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
+
+releaseNotes: ""
