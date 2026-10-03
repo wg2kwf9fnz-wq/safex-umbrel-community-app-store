@@ -23,9 +23,31 @@ services:
     volumes:
       - ${APP_DATA_DIR}/data:/root/.safex
 
+  stratum:
+    # Built by .github/workflows/docker-stratum.yml in wg2kwf9fnz-wq/safex-node.
+    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx1@sha256:3eb194877dcfcb7c16f336e2f7e734bf6c5a56effd4d85af64568d8803fd7dfe
+    restart: unless-stopped
+    hostname: stratum
+    stop_grace_period: 30s
+    depends_on:
+      - node
+    environment:
+      DAEMON_HOST: node
+      DAEMON_PORT: 17402
+      STRATUM_PORT: 17404
+      API_PORT: 8080
+      API_TOKEN: ${APP_SEED}
+      DEFAULT_DIFF: 20000
+    ports:
+      - "17404:17404"
+    volumes:
+      - ${APP_DATA_DIR}/stratum:/data
+
   dashboard:
     image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
     restart: unless-stopped
+    environment:
+      STRATUM_API_TOKEN: ${APP_SEED}
     volumes:
-      - ${APP_DATA_DIR}/dashboard/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${APP_DATA_DIR}/dashboard/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ${APP_DATA_DIR}/dashboard/index.html:/usr/share/nginx/html/index.html:ro

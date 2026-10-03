@@ -6,15 +6,17 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel3"
+version: "7.0.3-umbrel4"
 
-tagline: Run a Safex blockchain full node
+tagline: Run a Safex full node with a built-in solo mining stratum server
 
 description: >-
   Run a Safex mainnet full node on your Umbrel. The node synchronizes
   the Safex blockchain and participates in the peer-to-peer network.
-  Includes a read-only dashboard showing node status and synchronization
-  information. This is an independent community project and is not
+  Includes a dashboard showing node status and synchronization information,
+  and a built-in solo mining stratum server (xmrig-proxy patched for Safex,
+  algorithm RandomSFX / rx/sfx) on port 17404. Point XMRig or rented hashrate
+  at your Umbrel and block rewards are paid straight to your own Safex wallet. This is an independent community project and is not
   affiliated with, endorsed by, sponsored by, or officially connected
   to Safex or its developers.
 
@@ -42,4 +44,8 @@ submitter: wg2kwf9fnz-wq
 
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
-releaseNotes: "Added app icon and clarified independent community status."
+releaseNotes: >-
+  Adds a solo mining stratum server on port 17404 (xmrig-proxy 6.26.0 with Safex
+  support). Set your payout wallet from the dashboard, then connect miners with
+  "xmrig -a rx/sfx -o <umbrel-ip>:17404 -u rig1 -p x". The dashboard now shows
+  hashrate, workers, shares and estimated time to find a block.
