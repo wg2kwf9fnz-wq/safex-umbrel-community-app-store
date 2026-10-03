@@ -44,10 +44,12 @@ services:
       - ${APP_DATA_DIR}/stratum:/data
 
   dashboard:
-    image: nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    # Self-contained image: nginx config + web page are baked in (no bind-mounted files).
+    # Built by .github/workflows/docker-dashboard.yml in wg2kwf9fnz-wq/safex-node.
+    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.0.0@sha256:ec1a4f6112b6ce3ca4d20e91c800cbc53b777e4fa2f72116d4fb06f9663144eb
     restart: unless-stopped
+    depends_on:
+      - node
+      - stratum
     environment:
       STRATUM_API_TOKEN: ${APP_SEED}
-    volumes:
-      - ${APP_DATA_DIR}/dashboard/default.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ${APP_DATA_DIR}/dashboard/index.html:/usr/share/nginx/html/index.html:ro
