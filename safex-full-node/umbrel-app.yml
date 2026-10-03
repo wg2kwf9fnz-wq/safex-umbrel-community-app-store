@@ -6,7 +6,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel5"
+version: "7.0.3-umbrel6"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -45,6 +45,6 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  Fixes the dashboard not loading (it is now a self-contained image instead of
-  files copied into the app data folder) and adds a payout wallet box so you can
-  set the Safex address your solo mining stratum server (port 17404) pays to.
+  Fixes the dashboard failing to start (nginx resolver error) so the app opens from
+  the Umbrel home screen. Includes the payout wallet box for the solo mining stratum
+  server (port 17404).
