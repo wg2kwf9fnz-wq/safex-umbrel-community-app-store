@@ -8,7 +8,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel7"
+version: "7.0.3-umbrel8"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -18,7 +18,8 @@ description: >-
   Includes a dashboard showing node status and synchronization information,
   and a built-in solo mining stratum server (xmrig-proxy patched for Safex,
   algorithm RandomSFX / rx/sfx) on port 17404. Point XMRig or rented hashrate
-  at your Umbrel and block rewards are paid straight to your own Safex wallet. This is an independent community project and is not
+  at your Umbrel with your own Safex address as the username, and any block you find pays
+  its full reward to that address. This is an independent community project and is not
   affiliated with, endorsed by, sponsored by, or officially connected
   to Safex or its developers.
 
@@ -47,8 +48,8 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  New blue party hat app icon. Dashboard clean-up: target height no longer shows below
-  the current height, wallet addresses and worker names are condensed (Safex.....34e2N),
-  the page fits phones, and a "share of network hashrate" figure was added. Default share
-  difficulty raised from 20,000 to 50,000 (roughly one share every 9 seconds from a 5 kH/s
-  miner); set a different value per worker with the username, e.g. rig1+200000.
+  Everyone now mines to their own address: put your Safex address in the miner username
+  (Safex5...abc.rig1+50000) and if you find a block the whole reward goes to that address.
+  No pool, no payouts to manage. The dashboard hides workers after 12 hours without a
+  share and shows a chart of blocks found per address. NOTE: usernames that are not a
+  Safex address are now refused, and the payout wallet box was removed.

@@ -25,7 +25,7 @@ services:
 
   stratum:
     # Built by .github/workflows/docker-stratum.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx2@sha256:7f556266b6d882fa50443f111e2dca60dc992ec087a7bfed53b916dec025f973
+    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx3@sha256:170a5f54470943412029e65c2b9659b55f87837b2421ac53a530eb3c69538f2a
     restart: unless-stopped
     hostname: stratum
     stop_grace_period: 30s
@@ -46,7 +46,7 @@ services:
   dashboard:
     # Self-contained image: nginx config + web page are baked in (no bind-mounted files).
     # Built by .github/workflows/docker-dashboard.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.1.0@sha256:f81cca300614c5948eb0c7e5b27b698843ec213290c8d175ed2dd078d616ae8f
+    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.2.0@sha256:84b6b73448f8a2d126078dcdc89fbcc83b8644f6a2b60969e5622dbb182fc8ae
     restart: unless-stopped
     depends_on:
       - node
