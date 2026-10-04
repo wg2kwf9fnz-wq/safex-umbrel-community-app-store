@@ -25,7 +25,7 @@ services:
 
   stratum:
     # Built by .github/workflows/docker-stratum.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx1@sha256:3eb194877dcfcb7c16f336e2f7e734bf6c5a56effd4d85af64568d8803fd7dfe
+    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx2@sha256:7f556266b6d882fa50443f111e2dca60dc992ec087a7bfed53b916dec025f973
     restart: unless-stopped
     hostname: stratum
     stop_grace_period: 30s
@@ -37,7 +37,7 @@ services:
       STRATUM_PORT: 17404
       API_PORT: 8080
       API_TOKEN: ${APP_SEED}
-      DEFAULT_DIFF: 20000
+      DEFAULT_DIFF: 50000
     ports:
       - "17404:17404"
     volumes:
@@ -46,7 +46,7 @@ services:
   dashboard:
     # Self-contained image: nginx config + web page are baked in (no bind-mounted files).
     # Built by .github/workflows/docker-dashboard.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.0.1@sha256:1977b4de9774c34ad21b617aa495acacb2cb304de4f307c6c07d88ea55e88ad7
+    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.1.0@sha256:f81cca300614c5948eb0c7e5b27b698843ec213290c8d175ed2dd078d616ae8f
     restart: unless-stopped
     depends_on:
       - node

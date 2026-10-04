@@ -2,11 +2,13 @@ manifestVersion: 1
 
 id: safex-full-node
 
+icon: https://raw.githubusercontent.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store/main/safex-full-node/icon.png
+
 category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel6"
+version: "7.0.3-umbrel7"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -45,6 +47,8 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  Fixes the dashboard failing to start (nginx resolver error) so the app opens from
-  the Umbrel home screen. Includes the payout wallet box for the solo mining stratum
-  server (port 17404).
+  New blue party hat app icon. Dashboard clean-up: target height no longer shows below
+  the current height, wallet addresses and worker names are condensed (Safex.....34e2N),
+  the page fits phones, and a "share of network hashrate" figure was added. Default share
+  difficulty raised from 20,000 to 50,000 (roughly one share every 9 seconds from a 5 kH/s
+  miner); set a different value per worker with the username, e.g. rig1+200000.
