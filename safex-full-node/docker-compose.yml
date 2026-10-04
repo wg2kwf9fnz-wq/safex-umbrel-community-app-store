@@ -25,7 +25,7 @@ services:
 
   stratum:
     # Built by .github/workflows/docker-stratum.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx3@sha256:170a5f54470943412029e65c2b9659b55f87837b2421ac53a530eb3c69538f2a
+    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx4@sha256:dc90dec58401a70310e2b26ab9d26016f36de413060ff9ff59b1847c2eb9f5f1
     restart: unless-stopped
     hostname: stratum
     stop_grace_period: 30s
