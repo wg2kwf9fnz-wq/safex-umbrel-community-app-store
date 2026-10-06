@@ -8,7 +8,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel9"
+version: "7.0.3-umbrel10"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -48,6 +48,9 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  Fixes the stratum server crashing on start in 7.0.3-umbrel8 (missing Python module in
-  the image). Miners use their own Safex address as the username and are paid any block
-  they find; the dashboard hides workers after 12 hours and charts blocks per address.
+  Dashboard: recent blocks table (with the blocks your miners found), mempool size,
+  node uptime and free disk space. Stratum: abuse protection for an internet-facing
+  port (bans for repeated invalid logins, share floods and rejected-share spam,
+  limits per IP, per address and on new addresses, minimum difficulty 2000).
+  Local network and Tailscale addresses are never limited.
+  Also removes the leftover single payout wallet file from older versions.
