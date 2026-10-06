@@ -35,7 +35,10 @@ repo: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 support: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store/issues
 
-gallery: []
+gallery:
+  - https://raw.githubusercontent.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store/main/safex-full-node/gallery/1.png
+  - https://raw.githubusercontent.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store/main/safex-full-node/gallery/2.png
+  - https://raw.githubusercontent.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store/main/safex-full-node/gallery/3.png
 
 path: ""
 
