@@ -1,0 +1,41 @@
+name: GitHub release for each app version
+
+# Whenever an app's umbrel-app.yml changes on main, publish a GitHub release named after the new version
+# (release text = releaseNotes from the manifest + the pinned container images). Existing releases are left alone.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*/umbrel-app.yml"
+      - ".github/workflows/release.yml"
+      - ".github/scripts/release_notes.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create a release for every app whose version has no release yet
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for manifest in */umbrel-app.yml; do
+            app="${manifest%%/*}"
+            python3 .github/scripts/release_notes.py "$app" > "/tmp/$app.md"
+            version="$(head -n1 "/tmp/$app.md")"
+            tail -n +3 "/tmp/$app.md" > "/tmp/$app.body.md"
+            tag="$app-v$version"
+            title="$(grep -m1 '^name:' "$manifest" | sed 's/^name:[[:space:]]*//; s/"//g') $version"
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "release $tag already exists"
+            else
+              gh release create "$tag" --target "${GITHUB_SHA}" --title "$title" --notes-file "/tmp/$app.body.md"
+              echo "created release $tag"
+            fi
+          done
