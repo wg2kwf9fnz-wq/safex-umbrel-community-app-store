@@ -8,7 +8,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel10"
+version: "7.0.3-umbrel11"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -51,9 +51,4 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  Dashboard: recent blocks table (with the blocks your miners found), mempool size,
-  node uptime and free disk space. Stratum: abuse protection for an internet-facing
-  port (bans for repeated invalid logins, share floods and rejected-share spam,
-  limits per IP, per address and on new addresses, minimum difficulty 2000).
-  Local network and Tailscale addresses are never limited.
-  Also removes the leftover single payout wallet file from older versions.
+  Dashboard: the "Disk free" card is now "Node storage used" and shows how much disk space the node's blockchain data takes up. The recent blocks table now lists the last 100 blocks (it was about 10) in a scrollable box with a fixed header, newest first.

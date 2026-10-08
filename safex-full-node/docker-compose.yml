@@ -25,7 +25,7 @@ services:
 
   stratum:
     # Built by .github/workflows/docker-stratum.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx5@sha256:8cdc493f548edab2e4cfa1dbcd642feba5117e1f8fd7c37ba5d4f23f437317bf
+    image: ghcr.io/wg2kwf9fnz-wq/safex-stratum:6.26.0-sfx6@sha256:ad2666457963ffac7afad010a9513be2b7e622732d0e20649963832b6f652cc2
     restart: unless-stopped
     hostname: stratum
     stop_grace_period: 30s
@@ -46,10 +46,13 @@ services:
   dashboard:
     # Self-contained image: nginx config + web page are baked in (no bind-mounted files).
     # Built by .github/workflows/docker-dashboard.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.3.0@sha256:5d229ea491a3cbe39b1645bcb664a689df45c10647b6d2846f52df0ca05fc9c2
+    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.4.0@sha256:a206e0ad18d715ca9ca742a198d38e622c5918ed415283f9110149ff0d8c28c5
     restart: unless-stopped
     depends_on:
       - node
       - stratum
     environment:
       STRATUM_API_TOKEN: ${APP_SEED}
+    volumes:
+      # read-only: lets the dashboard show how much disk space the node data takes up
+      - ${APP_DATA_DIR}/data:/node-data:ro
