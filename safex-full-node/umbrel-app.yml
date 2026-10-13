@@ -8,7 +8,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel12"
+version: "7.0.3-umbrel13"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -51,4 +51,4 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  Dashboard: the Network tile is gone. The Solo Mining card now gives a ready-to-copy miner command for your home network and one for miners outside it (enter your public hostname or IP once), plus a short guide to port forwarding, testing the port and renting hashrate.
+  Dashboard: new Network difficulty history graph with a 24 hour and a 7 day view (lowest, highest, average and change shown above it, hover or touch for the exact value at a block). The history is read from the blockchain itself, so it is complete after any restart.
