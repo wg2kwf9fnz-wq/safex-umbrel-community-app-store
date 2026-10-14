@@ -8,7 +8,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel15"
+version: "7.0.3-umbrel16"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -51,4 +51,6 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  Dashboard: fixes the x button next to addresses under "Blocks found per address", which failed with HTTP 404.
+  New "Use 100% of CPU" switch on the dashboard. By default the node now uses about half of your CPU threads (at low priority),
+  so the initial sync no longer maxes out your machine; turn the switch on to sync faster. Changing it restarts the node for a
+  moment.
