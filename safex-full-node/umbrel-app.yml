@@ -8,7 +8,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel13"
+version: "7.0.3-umbrel14"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -51,4 +51,6 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
-  Dashboard: new Network difficulty history graph with a 24 hour and a 7 day view (lowest, highest, average and change shown above it, hover or touch for the exact value at a block). The history is read from the blockchain itself, so it is complete after any restart.
+  Dashboard: each address under "Blocks found per address" now has an x button to remove it from the list (handy for test or donation addresses). Addresses with a miner connected can't be removed until the miner is stopped.
+  The amount of SFX mined is now shown next to the block count for every address, plus a new "SFX mined (all addresses)" total at the top.
+  Rewards for blocks you already found are filled in automatically after the update.
