@@ -7,8 +7,57 @@ services:
   node:
     image: ghcr.io/wg2kwf9fnz-wq/safex-node:7.0.3@sha256:0a96cd769a33a3cac6dfc2de14669c7b5965b218800059f916a7e2fcda561fa8
     restart: unless-stopped
+    # Small wrapper around safexd (no image rebuild needed). It limits the CPU threads the node uses:
+    # half of the cores by default, all cores when the dashboard toggle "Use 100% of CPU" is on.
+    # The dashboard writes "half" or "full" to /control/cpu_mode; the wrapper notices within a few
+    # seconds and restarts safexd with the new thread count (sync resumes where it left off).
+    # NOTE: every dollar sign is doubled ($$) because docker compose would otherwise substitute it.
     entrypoint:
-      - safexd
+      - /bin/sh
+      - -c
+      - |
+        MODE_FILE=/control/cpu_mode
+        ACTIVE_FILE=/control/cpu_active
+        CORES=$$(nproc)
+        HALF=$$(( (CORES + 1) / 2 ))
+        mkdir -p /control
+        PID=""
+        term() {
+          if [ -n "$$PID" ]; then
+            kill -TERM "$$PID" 2>/dev/null
+            wait "$$PID" 2>/dev/null
+          fi
+          exit 0
+        }
+        trap term TERM INT
+        get_mode() {
+          m=half
+          [ -f "$$MODE_FILE" ] && read m < "$$MODE_FILE"
+          if [ "$$m" = full ]; then echo full; else echo half; fi
+        }
+        while true; do
+          MODE=$$(get_mode)
+          if [ "$$MODE" = full ]; then T=$$CORES; N=0; else T=$$HALF; N=10; fi
+          echo "$$MODE $$T $$CORES" > "$$ACTIVE_FILE"
+          echo "[safex-wrapper] cpu mode=$$MODE, using $$T of $$CORES threads"
+          nice -n "$$N" safexd "$$@" --max-concurrency="$$T" --prep-blocks-threads="$$T" &
+          PID=$$!
+          CHANGED=0
+          while kill -0 "$$PID" 2>/dev/null; do
+            sleep 3
+            if [ "$$(get_mode)" != "$$MODE" ]; then
+              CHANGED=1
+              echo "[safex-wrapper] cpu mode changed, restarting node"
+              kill -TERM "$$PID" 2>/dev/null
+              break
+            fi
+          done
+          wait "$$PID"
+          RC=$$?
+          PID=""
+          [ "$$CHANGED" = 1 ] || exit "$$RC"
+        done
+      - safex-wrapper
     hostname: node
     stop_grace_period: 5m
     command:
@@ -22,6 +71,7 @@ services:
       - "17401:17401"
     volumes:
       - ${APP_DATA_DIR}/data:/root/.safex
+      - ${APP_DATA_DIR}/control:/control
 
   stratum:
     # Built by .github/workflows/docker-stratum.yml in wg2kwf9fnz-wq/safex-node.
@@ -46,7 +96,7 @@ services:
   dashboard:
     # Self-contained image: nginx config + web page are baked in (no bind-mounted files).
     # Built by .github/workflows/docker-dashboard.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.6.0@sha256:a17f583a264aca86c7db9dcc9f77ff43b219c4690af3d73ac6b0f7140de3224b
+    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.7.0@sha256:6724e2ecb537cf7fb730d5151ba09503576f4a74fa14296d7ce863d3c0c62fee
     restart: unless-stopped
     depends_on:
       - node
@@ -56,3 +106,5 @@ services:
     volumes:
       # read-only: lets the dashboard show how much disk space the node data takes up
       - ${APP_DATA_DIR}/data:/node-data:ro
+      # read-write: the "Use 100% of CPU" toggle writes the node's cpu_mode file here
+      - ${APP_DATA_DIR}/control:/control
