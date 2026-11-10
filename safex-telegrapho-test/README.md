@@ -12,6 +12,10 @@ The package is shown as public in GitHub's package settings. The first install o
 
 The test app uses a separate app ID, port, and persistent data directory so it can be installed alongside the official Telegrapho app.
 
+## Test results
+
+The app owner has tested the new behavior on a computer and a phone and confirmed that both requested changes work as expected. Restart/update persistence still needs its own verification if not already covered in those tests.
+
 ## Validation checklist
 
 - The first client on one Umbrel installation receives the welcome modal.
