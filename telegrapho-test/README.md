@@ -8,7 +8,7 @@ This is a separate test listing for the modified Telegrapho build.
 - Digest: `sha256:8691bf60b1adc78a7b1a7e30ae36cdaaea9a2043d00e9da40579d29fcd7d37ea`
 - Build: [GitHub Actions run 42804605856](https://github.com/wg2kwf9fnz-wq/telegrapho/actions/runs/42804605856)
 
-Before merging this listing, confirm the GHCR package is public and can be pulled anonymously by Umbrel.
+The package is shown as public in GitHub's package settings. The first install on Umbrel will confirm that anonymous pulls work.
 
 The test app uses a separate app ID, port, and persistent data directory so it can be installed alongside the official Telegrapho app.
 
