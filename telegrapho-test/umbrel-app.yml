@@ -2,8 +2,6 @@ manifestVersion: 1
 
 id: telegrapho-test
 
-icon: https://raw.githubusercontent.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store/main/telegrapho-test/icon.png
-
 category: networking
 
 name: Telegrapho Test
