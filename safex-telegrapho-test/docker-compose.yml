@@ -1,0 +1,17 @@
+version: "3.7"
+
+services:
+  app_proxy:
+    environment:
+      APP_HOST: safex-telegrapho-test_app_1
+      APP_PORT: 3712
+
+  app:
+    image: ghcr.io/wg2kwf9fnz-wq/telegrapho:welcome-test-1@sha256:8691bf60b1adc78a7b1a7e30ae36cdaaea9a2043d00e9da40579d29fcd7d37ea
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+      PORT: 3712
+      DATA_DIR: /data
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
