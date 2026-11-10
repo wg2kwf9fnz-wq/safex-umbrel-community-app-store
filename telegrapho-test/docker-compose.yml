@@ -7,8 +7,7 @@ services:
       APP_PORT: 3712
 
   app:
-    # Replace this with the published GHCR digest after the test image build succeeds.
-    image: ghcr.io/wg2kwf9fnz-wq/telegrapho:welcome-test-1
+    image: ghcr.io/wg2kwf9fnz-wq/telegrapho:welcome-test-1@sha256:8691bf60b1adc78a7b1a7e30ae36cdaaea9a2043d00e9da40579d29fcd7d37ea
     restart: on-failure
     stop_grace_period: 1m
     environment:
