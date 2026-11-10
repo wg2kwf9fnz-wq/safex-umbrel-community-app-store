@@ -3,7 +3,7 @@ version: "3.7"
 services:
   app_proxy:
     environment:
-      APP_HOST: telegrapho_test_app_1
+      APP_HOST: telegrapho-test_app_1
       APP_PORT: 3712
 
   app:
