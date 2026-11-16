@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Umbrel adapter for Lastbook's upstream browser library server.
 
-Umbrel's authenticated app proxy is the only network entry point; the app
+The authenticated Umbrel app proxy is the only network entry point; the app
 container does not publish a host port. The adapter keeps Lastbook's normal
-host/origin checks for direct clients and trusts private-network reverse-proxy
-requests carrying X-Forwarded-For.
+host/origin checks for direct clients and trusts private-network proxy requests
+carrying X-Forwarded-For.
 """
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ from engine import paths  # noqa: E402
 from engine.setup import api as setup_api  # noqa: E402
 
 SETTINGS_DIR = Path(os.environ.get("XDG_CONFIG_HOME", "/data/config")) / "Lastbook"
+SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
+paths.DATA.mkdir(parents=True, exist_ok=True)
 INIT_LOCK = threading.Lock()
 INITIALIZED = False
 
@@ -41,13 +43,30 @@ def ensure_engine() -> None:
             INITIALIZED = True
 
 
-# Apply a completed first-run install or upgrade before the engine opens files.
+# Complete any library activation staged by a previous setup run before the
+# engine opens files. LASTBOOK_DATA remains pinned to the persistent volume.
 data, note = setup_api.startup(SETTINGS_DIR, only=paths.DATA)
 if note:
     setup_api.opened(SETTINGS_DIR, data or paths.DATA, note)
 
 if library_ready():
+    setup_api.configure(
+        mode="manage",
+        settings_dir=SETTINGS_DIR,
+        default_parent=paths.DATA.parent,
+        current=paths.DATA,
+    )
     ensure_engine()
+else:
+    # The upstream first-run screen chooses a pack and downloads it into
+    # /data/LastbookData. This is its native setup workflow, not a fake shell.
+    setup_api.configure(
+        mode="first-run",
+        settings_dir=SETTINGS_DIR,
+        default_parent=paths.DATA.parent,
+        current=None,
+        on_finish=lambda folder: None,
+    )
 
 
 # The upstream server normally accepts only localhost/IP Host headers and uses
@@ -94,7 +113,6 @@ def _get(handler) -> None:
         if library_ready():
             ensure_engine()
         else:
-            # Show Lastbook's own pack chooser until a library has been installed.
             handler.path = "/ui/setup.html"
     elif library_ready() and not path.startswith("/api/setup/"):
         ensure_engine()
@@ -104,15 +122,14 @@ def _get(handler) -> None:
 server.Handler.do_GET = _get
 
 
-# The upstream desktop shell restarts itself after setup. In a container, do
-# the equivalent process restart so setup_api.startup() can atomically activate
-# the downloaded pack before the library server opens it.
+# The desktop shell normally relaunches itself after setup. Do the same inside
+# the container so startup applies the verified, staged pack atomically.
 _original_finish = setup_api.Setup.finish
 
 
 def _finish(self):
     result = _original_finish(self)
-    if result.get("ok") and result.get("restart"):
+    if result.get("ok"):
         def restart() -> None:
             os.execv(sys.executable, [sys.executable, str(ROOT / "umbrel_server.py"), *sys.argv[1:]])
         threading.Timer(1.0, restart).start()
@@ -121,6 +138,6 @@ def _finish(self):
 
 setup_api.Setup.finish = _finish
 
-# Bind on the container interface. No host port is published by the compose
-# file; browser traffic arrives through Umbrel's authenticated reverse proxy.
+# Bind on the container interface. No host port is published by compose;
+# browser traffic arrives through Umbrel's authenticated reverse proxy.
 server.serve(8890, lan=True)
