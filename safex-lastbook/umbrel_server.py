@@ -25,6 +25,7 @@ from engine.setup import api as setup_api  # noqa: E402
 SETTINGS_DIR = Path(os.environ.get("XDG_CONFIG_HOME", "/data/config")) / "Lastbook"
 SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
 paths.DATA.mkdir(parents=True, exist_ok=True)
+(paths.DATA / 'derived').mkdir(parents=True, exist_ok=True)
 INIT_LOCK = threading.Lock()
 INITIALIZED = False
 
