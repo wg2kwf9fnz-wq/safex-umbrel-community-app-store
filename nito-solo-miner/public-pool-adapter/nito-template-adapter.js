@@ -265,6 +265,14 @@ function getCoinbaseAuxFlagsHex(template) {
   return flags.toLowerCase();
 }
 
+/** Concatenate all GBT coinbaseaux values as raw script bytes (keys are informational). */
+function getCoinbaseAuxScriptHex(template) {
+  if (!template || !template.coinbaseaux) return '';
+  const values = Object.values(template.coinbaseaux);
+  if (values.some(value => typeof value !== 'string' || !/^(?:[0-9a-fA-F]{2})*$/.test(value))) throw new Error('coinbaseaux values must be hex');
+  return values.join('').toLowerCase();
+}
+
 /** Encode a non-negative height as a minimally encoded script number push. */
 function encodeCoinbaseHeight(height) {
   if (!Number.isSafeInteger(height) || height < 0) throw new RangeError('coinbase height must be non-negative safe integer');
@@ -697,4 +705,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, compactBitsToTarget, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, getCoinbaseAuxScriptHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, compactBitsToTarget, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
