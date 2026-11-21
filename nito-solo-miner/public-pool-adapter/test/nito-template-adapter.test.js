@@ -428,6 +428,21 @@ test('bridge expires stale jobs by configured TTL', async () => {
   assert.equal(bridge.jobs.size, 0);
 });
 
+test('bridge suppresses concurrent duplicate block submissions', async () => {
+  let calls = 0, release;
+  const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'ff'.repeat(32) }), submitBlock: async () => { calls++; return new Promise(resolve => { release = resolve; }); } });
+  await bridge.refreshTemplate();
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  bridge.createJob({ jobId: 'concurrent-job', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
+  const share = { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime };
+  const first = bridge.submitShare('concurrent-job', share);
+  const second = await bridge.submitShare('concurrent-job', share);
+  assert.equal(second.duplicate, true);
+  assert.equal(calls, 1);
+  release('accepted');
+  assert.equal((await first).submitResult, 'accepted');
+});
+
 test('bridge allows retry after transient submitblock RPC failure', async () => {
   let calls = 0;
   const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'ff'.repeat(32) }), submitBlock: async () => { calls++; if (calls === 1) throw new Error('temporary RPC error'); return 'accepted'; } });
