@@ -37,7 +37,7 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 
 ## Capturing real Nito templates
 
-The read-only RPC probe can optionally save a raw GBT fixture for later compatibility tests: set `NITO_GBT_FIXTURE_PATH` in addition to the RPC credentials. It creates the file with mode `0600`; the fixture includes raw transaction data, so keep it private. This capture has not been run against a node from this environment.
+The read-only RPC probe checks that compact bits decode to the advertised full target and that transaction raw-envelope fields are present. It can optionally save a raw GBT fixture for later compatibility tests: set `NITO_GBT_FIXTURE_PATH` in addition to the RPC credentials. It creates the file with mode `0600`; the fixture includes raw transaction data, so keep it private. This capture has not been run against a node from this environment.
 
 ## Verification status
 
