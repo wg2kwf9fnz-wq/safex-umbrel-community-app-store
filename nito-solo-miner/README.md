@@ -28,7 +28,7 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 - Implements txid Merkle roots, coinbase Merkle branches, witness Merkle root/commitment digest, commitment OP_RETURN script encoding.
 - Implements basic coinbase serialization with BIP34 height script helper and witness reserved value, stripped txid calculation, extranonce split/reassembly.
 - Implements normalized Stratum template preparation and nine-field `mining.notify` formatting, including previous-hash word order.
-- Implements 80-byte header serialization/hash and candidate-block assembly from share nonce/time/extranonce while preserving opaque GBT transaction bytes; full block serialization occurs only for network-target candidates.
+- Implements 80-byte header serialization/hash and candidate-block assembly from share nonce/time/extranonce while preserving opaque GBT transaction bytes; full block serialization occurs only for network-target candidate, even if the pool share target is stricters.
 - Added a GitHub Actions workflow with syntax checks and Node tests.
 - Added guarded network-candidate submission through the injected RPC seam; ordinary shares never trigger `submitblock`.
 - Enforced the coinbase output reward cap at job creation.
