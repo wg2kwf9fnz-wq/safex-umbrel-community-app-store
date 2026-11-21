@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -104,6 +104,31 @@ test('empty transaction template returns an empty coinbase branch', () => {
 test('CompactSize encodes the transaction count boundary', () => {
   assert.equal(compactSize(252).toString('hex'), 'fc');
   assert.equal(compactSize(253).toString('hex'), 'fdfd00');
+});
+
+test('Stratum previous-hash formatter reverses and swaps 32-bit words', () => {
+  const display = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0')).join('');
+  assert.equal(formatStratumPrevHash(display), '1c1d1e1f18191a1b14151617101112130c0d0e0f08090a0b0405060700010203');
+});
+
+test('mining.notify formatter returns the nine Stratum V1 parameters', () => {
+  const prepared = prepareStratumTemplate(normalizeNitoTemplate(base));
+  const params = formatMiningNotifyParams({
+    jobId: 'ab',
+    preparedTemplate: prepared,
+    coinbaseParts: { coinbasePart1: '0102', coinbasePart2: '0304' },
+    cleanJobs: true
+  });
+  assert.equal(params.length, 9);
+  assert.equal(params[0], 'ab');
+  assert.equal(params[1], formatStratumPrevHash(base.previousblockhash));
+  assert.equal(params[2], '0102');
+  assert.equal(params[3], '0304');
+  assert.deepEqual(params[4], prepared.merkleBranch);
+  assert.equal(params[5], '00000004');
+  assert.equal(params[6], '1d00ffff');
+  assert.equal(params[7], base.curtime.toString(16).padStart(8, '0'));
+  assert.equal(params[8], true);
 });
 
 test('prepared Stratum template carries raw transactions and Merkle branches', () => {
