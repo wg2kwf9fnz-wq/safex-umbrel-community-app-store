@@ -67,7 +67,17 @@ function normalizeNitoTemplate(raw) {
     coinbasevalue: raw.coinbasevalue,
     target: raw.target.toLowerCase(),
     rules: Object.freeze([...(raw.rules || [])]),
-    transactions: Object.freeze(transactions)
+    transactions: Object.freeze(transactions),
+    // Preserve optional mining metadata from GBT for integration/consensus checks.
+    ...(raw.default_witness_commitment !== undefined ? { default_witness_commitment: raw.default_witness_commitment } : {}),
+    ...(raw.coinbaseaux !== undefined ? { coinbaseaux: Object.freeze({ ...raw.coinbaseaux }) } : {}),
+    ...(raw.mutable !== undefined ? { mutable: Object.freeze([...raw.mutable]) } : {}),
+    ...(raw.noncerange !== undefined ? { noncerange: raw.noncerange } : {}),
+    ...(raw.vbrequired !== undefined ? { vbrequired: raw.vbrequired } : {}),
+    ...(raw.sigoplimit !== undefined ? { sigoplimit: raw.sigoplimit } : {}),
+    ...(raw.sizelimit !== undefined ? { sizelimit: raw.sizelimit } : {}),
+    ...(raw.weightlimit !== undefined ? { weightlimit: raw.weightlimit } : {}),
+    ...(raw.capabilities !== undefined ? { capabilities: Object.freeze([...raw.capabilities]) } : {})
   });
 }
 
