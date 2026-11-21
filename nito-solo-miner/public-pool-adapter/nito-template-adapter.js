@@ -22,7 +22,7 @@ function normalizeNitoTemplate(raw) {
   }
   if (!HEX_32.test(raw.previousblockhash)) throw new Error('previousblockhash must be 32-byte hex');
   if (!Number.isSafeInteger(raw.height) || raw.height < 0) throw new Error('height must be a non-negative integer');
-  if (!Number.isSafeInteger(raw.version)) throw new Error('version must be an integer');
+  if (!Number.isInteger(raw.version) || raw.version < -0x80000000 || raw.version > 0x7fffffff) throw new Error('version must be int32');
   if (typeof raw.bits !== 'string' || !/^[0-9a-fA-F]{8}$/.test(raw.bits)) throw new Error('bits must be 4-byte hex');
   if (!HEX_32.test(raw.target)) throw new Error('target must be 32-byte hex');
   for (const key of ['curtime', 'mintime', 'coinbasevalue']) {
@@ -337,7 +337,7 @@ function assembleCoinbaseFromParts({ coinbasePart1, coinbasePart2, coinbaseStrip
 
 /** Serialize the standard 80-byte Nito/Bitcoin-style proof-of-work header. */
 function serializeMiningHeader({ version, previousblockhash, merkleRootInternal, timestamp, bits, nonce }) {
-  if (!Number.isSafeInteger(version)) throw new Error('header version must be an integer');
+  if (!Number.isInteger(version) || version < -0x80000000 || version > 0x7fffffff) throw new Error('header version must be int32');
   if (!HEX_32.test(previousblockhash)) throw new Error('previous block hash must be 32-byte hex');
   if (!Buffer.isBuffer(merkleRootInternal) || merkleRootInternal.length !== 32) throw new Error('merkle root must be a 32-byte internal-order Buffer');
   for (const [name, value] of Object.entries({ timestamp, nonce })) {
