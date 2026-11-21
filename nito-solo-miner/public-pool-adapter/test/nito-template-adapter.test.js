@@ -22,6 +22,7 @@ test('normalizer retains raw transaction bytes and metadata without decoding', (
 
 test('rejects malformed template and malformed transaction bytes', () => {
   assert.throws(() => normalizeNitoTemplate({ ...base, height: -1 }), /height/);
+  assert.throws(() => normalizeNitoTemplate({ ...base, version: 0x80000000 }), /version must be int32/);
   assert.throws(() => normalizeNitoTemplate({ ...base, target: 'xyz' }), /target must be 32-byte hex/);
   const noTarget = { ...base }; delete noTarget.target;
   assert.throws(() => normalizeNitoTemplate(noTarget), /missing required field: target/);
@@ -224,6 +225,7 @@ test('header hash is double SHA-256 of the serialized 80 bytes', () => {
 test('header serializer rejects invalid nonce and compact bits', () => {
   const common = { version: 1, previousblockhash: '11'.repeat(32), merkleRootInternal: Buffer.alloc(32), timestamp: 1, bits: '1d00ffff', nonce: 1 };
   assert.throws(() => serializeMiningHeader({ ...common, nonce: -1 }), /uint32/);
+  assert.throws(() => serializeMiningHeader({ ...common, version: 0x80000000 }), /version must be int32/);
   assert.throws(() => serializeMiningHeader({ ...common, bits: 'bad' }), /bits/);
 });
 
