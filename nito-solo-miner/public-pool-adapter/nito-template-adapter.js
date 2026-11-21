@@ -605,12 +605,17 @@ class NitoStratumBridge {
     const processed = processNitoShare(entry.job, share);
     const hash = processed.headerCandidate.blockHashInternalHex;
     if ((processed.meetsShareTarget || processed.meetsNetworkTarget) && entry.submittedHashes.has(hash)) return Object.freeze({ ...processed, duplicate: true, submitResult: null });
-    if (processed.meetsShareTarget || processed.meetsNetworkTarget) {
+    const trackHash = () => {
       entry.submittedHashes.add(hash);
       while (entry.submittedHashes.size > this.maxTrackedSharesPerJob) entry.submittedHashes.delete(entry.submittedHashes.values().next().value);
+    };
+    if (!processed.meetsNetworkTarget) {
+      if (processed.meetsShareTarget) trackHash();
+      return Object.freeze({ ...processed, duplicate: false, submitResult: null });
     }
-    if (!processed.meetsNetworkTarget) return Object.freeze({ ...processed, duplicate: false, submitResult: null });
+    // Track block hashes only after RPC returns; a transient RPC error may be retried.
     const submitResult = await this.rpc.submitBlock(processed.candidate);
+    trackHash();
     return Object.freeze({ ...processed, duplicate: false, submitResult });
   }
 }
