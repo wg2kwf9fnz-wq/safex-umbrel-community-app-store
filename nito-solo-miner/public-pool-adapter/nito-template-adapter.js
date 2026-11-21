@@ -35,7 +35,7 @@ function normalizeNitoTemplate(raw) {
   for (const key of ['mutable', 'capabilities']) {
     if (raw[key] !== undefined && (!Array.isArray(raw[key]) || raw[key].some(value => typeof value !== 'string'))) throw new Error(`${key} must be an array of strings`);
   }
-  if (raw.coinbaseaux !== undefined && (!raw.coinbaseaux || typeof raw.coinbaseaux !== 'object' || Array.isArray(raw.coinbaseaux))) throw new Error('coinbaseaux must be an object');
+  if (raw.coinbaseaux !== undefined && (!raw.coinbaseaux || typeof raw.coinbaseaux !== 'object' || Array.isArray(raw.coinbaseaux) || Object.values(raw.coinbaseaux).some(value => typeof value !== 'string' || !/^(?:[0-9a-fA-F]{2})*$/.test(value))) throw new Error('coinbaseaux must be an object containing hex values');
   if (raw.default_witness_commitment !== undefined && (typeof raw.default_witness_commitment !== 'string' || !/^6a24aa21a9ed[0-9a-fA-F]{64}$/i.test(raw.default_witness_commitment))) throw new Error('default_witness_commitment must be a 38-byte witness commitment script');
   if (raw.noncerange !== undefined && (typeof raw.noncerange !== 'string' || !/^[0-9a-fA-F]{16}$/.test(raw.noncerange))) throw new Error('noncerange must be 8-byte hex');
   if (raw.vbrequired !== undefined && (!Number.isSafeInteger(raw.vbrequired) || raw.vbrequired < 0)) throw new Error('vbrequired must be a non-negative integer');
@@ -254,6 +254,14 @@ function prepareStratumTemplate(template) {
     merkleBranch: Object.freeze(coinbaseMerkleBranchInternal(txids)),
     transactions: template.transactions
   });
+}
+
+/** Return the raw GBT coinbaseaux.flags bytes, or empty bytes when absent. */
+function getCoinbaseAuxFlagsHex(template) {
+  if (!template || !template.coinbaseaux) return '';
+  const flags = template.coinbaseaux.flags || '';
+  if (typeof flags !== 'string' || !/^(?:[0-9a-fA-F]{2})*$/.test(flags)) throw new Error('coinbaseaux.flags must be hex');
+  return flags.toLowerCase();
 }
 
 /** Encode a non-negative height as a minimally encoded script number push. */
@@ -597,4 +605,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
