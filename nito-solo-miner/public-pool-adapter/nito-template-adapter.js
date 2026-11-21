@@ -353,6 +353,29 @@ function serializeMiningHeader({ version, previousblockhash, merkleRootInternal,
   return header;
 }
 
+/** Build a stored Stratum job record and mining.notify payload from a normalized template. */
+function createNitoStratumJob({ template, jobId, coinbaseParts, cleanJobs = false }) {
+  if (!template || typeof template.target !== 'string' || !HEX_32.test(template.target)) throw new Error('template target required for block-candidate comparison');
+  const preparedTemplate = prepareStratumTemplate(template);
+  const notifyParams = formatMiningNotifyParams({ jobId, preparedTemplate, coinbaseParts, cleanJobs });
+  return Object.freeze({ jobId, preparedTemplate, coinbaseParts, notifyParams, networkTarget: template.target.toLowerCase() });
+}
+
+/** Process a share into a candidate block and indicate whether it meets network target. */
+function processNitoShare(job, share) {
+  if (!job || !job.preparedTemplate) throw new Error('Nito Stratum job required');
+  const candidate = buildCandidateBlockFromShare({
+    preparedTemplate: job.preparedTemplate,
+    coinbaseParts: job.coinbaseParts,
+    extranonceHex: share.extraNonce2,
+    nonce: share.nonce,
+    timestamp: share.timestamp,
+    version: share.version
+  });
+  const meetsNetworkTarget = hashMeetsTarget(Buffer.from(candidate.blockHashInternalHex, 'hex'), job.networkTarget);
+  return Object.freeze({ candidate, meetsNetworkTarget });
+}
+
 /** Compare an internal-order proof-of-work hash against a display-order 256-bit target. */
 function hashMeetsTarget(hashInternal, targetHex) {
   if (!Buffer.isBuffer(hashInternal) || hashInternal.length !== 32) throw new Error('hash must be 32 bytes');
@@ -428,4 +451,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
