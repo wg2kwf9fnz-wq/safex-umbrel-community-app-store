@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - "nito-solo-miner/public-pool-adapter/**"
+      - "nito-solo-miner/tests/rpc_mining_probe.py"
       - ".github/workflows/nito-adapter-tests.yml"
 
 jobs:
