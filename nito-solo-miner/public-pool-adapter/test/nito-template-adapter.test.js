@@ -312,6 +312,11 @@ test('injected Nito RPC adapter requests and normalizes a GBT', async () => {
   assert.deepEqual(calls[0].params, createGetBlockTemplateRequest().params);
 });
 
+test('submit RPC errors propagate to caller', async () => {
+  const rpc = createNitoRpcAdapter(async () => { throw new Error('node RPC unavailable'); });
+  await assert.rejects(rpc.submitBlock('deadbeef'), /node RPC unavailable/);
+});
+
 test('injected Nito RPC adapter submits only validated raw block hex', async () => {
   let seen;
   const rpc = createNitoRpcAdapter(async (method, params) => { seen = { method, params }; return null; });
