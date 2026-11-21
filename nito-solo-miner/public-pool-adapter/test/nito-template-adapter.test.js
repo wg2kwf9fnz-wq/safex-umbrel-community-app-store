@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -81,6 +81,33 @@ test('empty transaction template returns an empty coinbase branch', () => {
 test('CompactSize encodes the transaction count boundary', () => {
   assert.equal(compactSize(252).toString('hex'), 'fc');
   assert.equal(compactSize(253).toString('hex'), 'fdfd00');
+});
+
+test('header serializer writes fields in standard 80-byte layout', () => {
+  const prev = '12'.repeat(32);
+  const root = Buffer.from('34'.repeat(32), 'hex');
+  const header = serializeMiningHeader({ version: 4, previousblockhash: prev, merkleRootInternal: root, timestamp: 0x01020304, bits: '1d00ffff', nonce: 0x05060708 });
+  assert.equal(header.length, 80);
+  assert.equal(header.subarray(0, 4).toString('hex'), '04000000');
+  assert.equal(header.subarray(4, 36).toString('hex'), Buffer.from(prev, 'hex').reverse().toString('hex'));
+  assert.equal(header.subarray(36, 68).toString('hex'), root.toString('hex'));
+  assert.equal(header.subarray(68, 72).toString('hex'), '04030201');
+  assert.equal(header.subarray(72, 76).toString('hex'), 'ffff001d');
+  assert.equal(header.subarray(76, 80).toString('hex'), '08070605');
+});
+
+test('header hash is double SHA-256 of the serialized 80 bytes', () => {
+  const header = Buffer.alloc(80, 0x5a);
+  const h = require('node:crypto').createHash('sha256')
+    .update(require('node:crypto').createHash('sha256').update(header).digest()).digest();
+  assert.equal(miningHeaderHash(header).toString('hex'), h.toString('hex'));
+  assert.throws(() => miningHeaderHash(Buffer.alloc(79)), /80 bytes/);
+});
+
+test('header serializer rejects invalid nonce and compact bits', () => {
+  const common = { version: 1, previousblockhash: '11'.repeat(32), merkleRootInternal: Buffer.alloc(32), timestamp: 1, bits: '1d00ffff', nonce: 1 };
+  assert.throws(() => serializeMiningHeader({ ...common, nonce: -1 }), /uint32/);
+  assert.throws(() => serializeMiningHeader({ ...common, bits: 'bad' }), /bits/);
 });
 
 test('candidate block envelope preserves opaque transaction bytes', () => {
