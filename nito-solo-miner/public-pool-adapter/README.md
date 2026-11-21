@@ -13,7 +13,8 @@ Scope implemented:
 - Keep transaction `data` opaque and byte-for-byte represented as the original hex string.
 - Validate 1-based dependency indexes and require dependencies precede dependents; selection enforces dependency closure.
 - Provide txid Merkle-root helper and Stratum coinbase branch generation in internal byte order (not witness root).
+- Prepare Stratum template inputs (time floor, previous-hash internal order, raw transactions and coinbase Merkle branches).
 - Serialize standard 80-byte mining headers and double-SHA256 header hashes.
 - Encode CompactSize counts and serialize a header + coinbase + untouched raw template transaction bytes as a candidate block envelope.
 
-Before integration, compare field/rule requirements against the exact Nito v4 daemon and add fixtures from regtest. The current test fixtures are synthetic, not captured GBTs. Seventeen Node built-in tests passed against a scratch copy of the prototype, including Merkle-root byte-order and odd-leaf tests. The repository could not be cloned here due to network DNS restrictions, so this remains scratch-copy verification rather than a checkout-based run. The latest GitHub Actions result for this expanded 17-test suite has not yet been independently confirmed.
+Before integration, compare field/rule requirements against the exact Nito v4 daemon and add fixtures from regtest. The current test fixtures are synthetic, not captured GBTs. Seventeen Node built-in tests passed against a scratch copy of the prototype, including Merkle-root byte-order and odd-leaf tests. The repository could not be cloned here due to network DNS restrictions, so this remains scratch-copy verification rather than a checkout-based run. GitHub Actions passed the 17-test suite at commit `7367220`; the latest 19-test suite is awaiting CI.
