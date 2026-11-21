@@ -41,7 +41,7 @@ The read-only RPC probe checks that compact bits decode to the advertised full t
 
 ## Verification status
 
-- GitHub Actions run #624 passed **62 tests** at commit `bdc94e8f`, including adapter tests and Python syntax checking of the read-only RPC probe. The workflow supports manual dispatch. Earlier CI caught and corrected noncerange, extranonce-offset, fixture, and test-expectation assumptions.
+- GitHub Actions run #640 passed **62 tests** at commit `f430d579`, including adapter tests and Python syntax checking of the read-only RPC probe. The workflow supports manual dispatch. Earlier CI caught and corrected noncerange, extranonce-offset, fixture, and test-expectation assumptions.
 - No Nito v4 captured GBT fixture, Nito regtest `submitblock`, live mining, pool-configured per-connection difficulty integration (the helper derives a target from a supplied difficulty), or consensus validation has been performed.
 - The adapter is still not integrated into Public Pool's actual server.
 
