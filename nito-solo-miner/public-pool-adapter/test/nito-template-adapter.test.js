@@ -356,7 +356,7 @@ test('network block is submitted even when the pool share target is not met', as
 test('compact nBits decoder yields Nito v4 genesis diff-one target', () => {
   const diff1 = '00000000ffff0000000000000000000000000000000000000000000000000000';
   assert.equal(compactBitsToTarget('1d00ffff'), diff1);
-  assert.equal(compactBitsToTarget('0300ffff'), '0000000000000000000000000000000000000000000000000000000000ffff');
+  assert.equal(compactBitsToTarget('0300ffff'), '000000000000000000000000000000000000000000000000000000000000ffff');
   assert.throws(() => compactBitsToTarget('1d80ffff'), /positive/);
   assert.throws(() => compactBitsToTarget('00000000'), /positive/);
 });
