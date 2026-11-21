@@ -448,6 +448,10 @@ test('JSON-RPC client sends Basic auth and validates response id/result', async 
   assert.equal(request.url, 'http://nito:8232');
   assert.equal(request.options.headers.authorization, 'Basic ' + Buffer.from('user:secret').toString('base64'));
   assert.deepEqual(JSON.parse(request.options.body), { jsonrpc: '1.0', id: 1, method: 'getmininginfo', params: [] });
+  let cookieAuthorization;
+  const cookieRpc = createJsonRpcCall({ url: 'http://nito:8232', cookieFile: '/fake/.cookie', readCookieFile: () => 'cookieuser:cookiepass', fetchImpl: async (url, options) => { cookieAuthorization = options.headers.authorization; return { ok: true, json: async () => ({ id: 1, result: true }) }; } });
+  assert.equal(await cookieRpc('getblockcount'), true);
+  assert.equal(cookieAuthorization, 'Basic ' + Buffer.from('cookieuser:cookiepass').toString('base64'));
 });
 
 test('JSON-RPC client rejects HTTP, mismatched id and RPC errors', async () => {
