@@ -40,6 +40,7 @@ test('selection requires dependency closure and preserves original order', () =>
 });
 
 test('single txid leaf returns its internal byte order', () => {
-  const id = 'ab'.repeat(32);
-  assert.equal(txidMerkleRootInternal([id]).toString('hex'), 'ab'.repeat(32));
+  const id = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0')).join('');
+  const reversed = Array.from({ length: 32 }, (_, i) => (31 - i).toString(16).padStart(2, '0')).join('');
+  assert.equal(txidMerkleRootInternal([id]).toString('hex'), reversed);
 });
