@@ -28,6 +28,10 @@ test('rejects malformed template and malformed transaction bytes', () => {
   assert.throws(() => normalizeNitoTemplate({ ...base, transactions: [{ ...base.transactions[0], data: 'abc' }] }), /raw hex/);
 });
 
+test('normalizes target hex case', () => {
+  assert.equal(normalizeNitoTemplate({ ...base, target: 'AB'.repeat(32) }).target, 'ab'.repeat(32));
+});
+
 test('rejects dependency indexes pointing forward', () => {
   assert.throws(() => normalizeNitoTemplate({
     ...base,
