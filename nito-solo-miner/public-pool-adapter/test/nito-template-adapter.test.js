@@ -29,6 +29,17 @@ test('rejects malformed template and malformed transaction bytes', () => {
   assert.throws(() => normalizeNitoTemplate({ ...base, transactions: [{ ...base.transactions[0], data: 'abc' }] }), /raw hex/);
 });
 
+test('preserves and validates optional GBT mining metadata', () => {
+  const fixture = { ...base, default_witness_commitment: '6a24aa21a9ed' + 'ab'.repeat(32), coinbaseaux: { flags: 'abcd' }, mutable: ['time', 'transactions'], noncerange: '00000000ffffffff', vbrequired: 1, sigoplimit: 80000, sizelimit: 1000000, weightlimit: 4000000, capabilities: ['proposal'] };
+  const normalized = normalizeNitoTemplate(fixture);
+  assert.equal(normalized.default_witness_commitment, fixture.default_witness_commitment);
+  assert.deepEqual(normalized.coinbaseaux, fixture.coinbaseaux);
+  assert.deepEqual(normalized.mutable, fixture.mutable);
+  assert.deepEqual(normalized.capabilities, fixture.capabilities);
+  assert.throws(() => normalizeNitoTemplate({ ...base, noncerange: 'bad' }), /noncerange/);
+  assert.throws(() => normalizeNitoTemplate({ ...base, capabilities: 'proposal' }), /capabilities/);
+});
+
 test('normalizes target hex case', () => {
   assert.equal(normalizeNitoTemplate({ ...base, target: 'AB'.repeat(32) }).target, 'ab'.repeat(32));
 });
