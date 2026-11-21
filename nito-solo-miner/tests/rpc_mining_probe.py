@@ -59,6 +59,8 @@ print(f"  height={template['height']} previous={template['previousblockhash']}")
 print(f"  bits={template['bits']} target={template['target']} coinbasevalue={template['coinbasevalue']}")
 
 def compact_target(bits):
+    if not isinstance(bits, str) or len(bits) != 8 or any(ch not in '0123456789abcdefABCDEF' for ch in bits):
+        raise ValueError('bits must be exactly 8 hex characters')
     compact = int(bits, 16)
     exponent = compact >> 24
     mantissa = compact & 0x007fffff
@@ -73,6 +75,8 @@ try:
     decoded_target = compact_target(template['bits'])
 except Exception as e:
     sys.exit(f'Invalid compact bits: {e}')
+if not isinstance(template['target'], str) or len(template['target']) != 64 or any(ch not in '0123456789abcdefABCDEF' for ch in template['target']):
+    sys.exit('GBT target must be 32-byte hex')
 if decoded_target != template['target'].lower():
     sys.exit(f"GBT target mismatch: bits decode to {decoded_target}, RPC target is {template['target']}")
 print('  compact bits and full target agree')
