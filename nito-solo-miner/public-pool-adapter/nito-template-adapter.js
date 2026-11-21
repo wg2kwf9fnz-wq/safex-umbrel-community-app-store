@@ -430,8 +430,9 @@ function serializeMiningHeader({ version, previousblockhash, merkleRootInternal,
 }
 
 /** Build a stored Stratum job record and mining.notify payload from a normalized template. */
-function createNitoStratumJob({ template, jobId, coinbaseParts, shareTarget, cleanJobs = false }) {
+function createNitoStratumJob({ template, jobId, coinbaseParts, shareTarget, difficulty, cleanJobs = false }) {
   if (!template || typeof template.target !== 'string' || !HEX_32.test(template.target)) throw new Error('template target required for block-candidate comparison');
+  if (shareTarget === undefined) shareTarget = difficultyToTarget(difficulty);
   if (typeof shareTarget !== 'string' || !HEX_32.test(shareTarget)) throw new Error('shareTarget must be a 32-byte target hex string');
   if (!coinbaseParts || !Number.isSafeInteger(coinbaseParts.totalValue) || coinbaseParts.totalValue < 0) throw new Error('coinbase parts must report a non-negative totalValue');
   if (coinbaseParts.totalValue > template.coinbasevalue) throw new Error('coinbase output total exceeds template coinbasevalue');
@@ -467,6 +468,28 @@ async function processAndSubmitNitoShare(job, share, rpcAdapter) {
   if (!processed.meetsNetworkTarget) return Object.freeze({ ...processed, submitResult: null });
   const submitResult = await rpcAdapter.submitBlock(processed.candidate);
   return Object.freeze({ ...processed, submitResult });
+}
+
+const NITO_DIFF1_TARGET = BigInt('0x00000000ffff0000000000000000000000000000000000000000000000000000');
+const MAX_UINT256 = (1n << 256n) - 1n;
+
+/** Convert positive decimal difficulty to a 256-bit share target using Nito's genesis diff-1 target (1d00ffff). */
+function difficultyToTarget(difficulty) {
+  const input = typeof difficulty === 'number' ? String(difficulty) : difficulty;
+  if (typeof input !== 'string' || !/^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(input)) throw new Error('difficulty must be a positive decimal');
+  const [mantissaText, exponentText = '0'] = input.toLowerCase().split('e');
+  const exponent = Number(exponentText);
+  if (!Number.isSafeInteger(exponent) || Math.abs(exponent) > 1000) throw new RangeError('difficulty exponent out of range');
+  const [whole = '0', fraction = ''] = mantissaText.split('.');
+  const digits = BigInt((whole || '0') + fraction);
+  if (digits <= 0n) throw new RangeError('difficulty must be positive');
+  let numerator = digits, denominator = 10n ** BigInt(fraction.length);
+  if (exponent > 0) numerator *= 10n ** BigInt(exponent);
+  if (exponent < 0) denominator *= 10n ** BigInt(-exponent);
+  let target = (NITO_DIFF1_TARGET * denominator) / numerator;
+  if (target > MAX_UINT256) target = MAX_UINT256;
+  if (target < 1n) target = 1n;
+  return target.toString(16).padStart(64, '0');
 }
 
 /** Compare an internal-order proof-of-work hash against a display-order 256-bit target. */
@@ -549,7 +572,7 @@ class NitoStratumBridge {
   createJob({ jobId, coinbaseParts, shareTarget, cleanJobs = false }) {
     if (!this.template) throw new Error('refreshTemplate must be called before creating jobs');
     this.purgeExpiredJobs();
-    const job = createNitoStratumJob({ template: this.template, jobId, coinbaseParts, shareTarget, cleanJobs });
+    const job = createNitoStratumJob({ template: this.template, jobId, coinbaseParts, shareTarget, difficulty, cleanJobs });
     this.jobs.set(jobId, { job, createdAt: this.now() });
     while (this.jobs.size > this.maxJobs) this.jobs.delete(this.jobs.keys().next().value);
     return job;
@@ -634,4 +657,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
