@@ -34,13 +34,13 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 ## Verification status
 
 - GitHub Actions run #64 passed 21 tests at commit `64d68db`.
-- GitHub Actions run #259 passed **46 tests** at commit `1bed5e72`.
+- GitHub Actions run #259 passed **46 tests** at commit `1bed5e72`. The optional GBT metadata test initially exposed a noncerange length bug in run #269; fixed to accept 16 hex chars and added a regression assertion, latest verification pending.
 - No Nito v4 captured GBT fixture, Nito regtest `submitblock`, live mining, share-difficulty validation, or consensus validation has been performed.
 - The adapter is still not integrated into Public Pool's actual server.
 
 ## Next engineering steps
 
-1. Latest CI passed 43 tests; continue verifying each integration change.
+1. Latest green CI: 46 tests. A subsequent metadata-validation test exposed and fixed a noncerange length bug; latest 47-test CI is pending.
 2. Build captured Nito v4/regtest GBT fixtures, including Orchard transactions.
 3. Validate coinbase height/script rules, payout script/address, reward limits, witness commitment and txid/wtxid semantics against the exact Nito daemon.
 4. Integrate the raw-transaction path into a pinned Public Pool fork: job creation, Stratum submission/share validation, candidate block serialization and RPC `submitblock`.
