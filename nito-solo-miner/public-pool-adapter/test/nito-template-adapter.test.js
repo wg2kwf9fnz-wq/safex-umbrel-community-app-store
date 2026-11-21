@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -163,6 +163,19 @@ test('prepared Stratum template carries raw transactions and Merkle branches', (
 test('prepared Stratum template uses mintime if curtime is earlier', () => {
   const normalized = normalizeNitoTemplate({ ...base, curtime: base.mintime - 5 });
   assert.equal(prepareStratumTemplate(normalized).timestamp, base.mintime);
+});
+
+test('coinbase output builder appends witness commitment and enforces reward cap', () => {
+  const template = normalizeNitoTemplate(base);
+  const payoutOutputs = [{ value: 1000, scriptHex: '51' }];
+  const built = buildCoinbaseOutputs({ payoutOutputs, template, witnessReservedValue: Buffer.alloc(32, 0x55) });
+  assert.equal(built.outputs.length, 2);
+  assert.equal(built.outputs[0].value, 1000);
+  assert.equal(built.outputs[1].value, 0);
+  const expected = computeWitnessCommitment(template.transactions.map(tx => tx.hash), Buffer.alloc(32, 0x55)).toString('hex');
+  assert.equal(built.witnessCommitmentHex, expected);
+  assert.equal(built.outputs[1].scriptHex, witnessCommitmentScript(Buffer.from(expected, 'hex')).toString('hex'));
+  assert.throws(() => buildCoinbaseOutputs({ payoutOutputs: [{ value: template.coinbasevalue + 1, scriptHex: '51' }], template }), /exceed template coinbasevalue/);
 });
 
 test('coinbase height script number and extranonce placeholder are minimally encoded', () => {
