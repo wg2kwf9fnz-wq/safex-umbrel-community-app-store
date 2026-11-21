@@ -389,8 +389,9 @@ test('bridge expires stale jobs by configured TTL', async () => {
 
 test('bridge forwards valid shares and submits only network-target blocks', async () => {
   const submissions = [];
-  const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'ff'.repeat(32) }), submitBlock: async candidate => { submissions.push(candidate); return 'accepted'; } });
+  const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'FF'.repeat(32) }), submitBlock: async candidate => { submissions.push(candidate); return 'accepted'; } });
   await bridge.refreshTemplate();
+  assert.equal(bridge.template.target, 'ff'.repeat(32));
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
   bridge.createJob({ jobId: 'bridge-job', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
   const result = await bridge.submitShare('bridge-job', { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
