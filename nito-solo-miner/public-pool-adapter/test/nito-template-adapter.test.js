@@ -236,6 +236,8 @@ test('Stratum bridge rejects missing target and flags non-candidate hash', () =>
   const job = createNitoStratumJob({ template, jobId: 'job-2', coinbaseParts: parts });
   const processed = processNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
   assert.equal(processed.meetsNetworkTarget, false);
+  assert.equal(processed.candidate, null);
+  assert.ok(processed.headerCandidate);
   assert.throws(() => createNitoStratumJob({ template: normalizeNitoTemplate(base), jobId: 'x', coinbaseParts: parts }), /target required/);
 });
 
