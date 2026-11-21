@@ -361,6 +361,14 @@ function hashMeetsTarget(hashInternal, targetHex) {
   return BigInt('0x' + hashDisplay) <= BigInt('0x' + targetHex);
 }
 
+/** Build the standard Nito/BIP145 GBT request used by the prototype (no RPC call). */
+function createGetBlockTemplateRequest() {
+  return Object.freeze({
+    method: 'getblocktemplate',
+    params: [Object.freeze({ rules: Object.freeze(['segwit']), mode: 'template', capabilities: Object.freeze(['serverlist', 'proposal']) })]
+  });
+}
+
 /** Produce the JSON-RPC submitblock request payload (no RPC side effects). */
 function createSubmitBlockRequest(blockHex) {
   if (typeof blockHex !== 'string' || !HEX_BYTES.test(blockHex)) throw new Error('candidate block must be non-empty hex');
@@ -420,4 +428,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, hashMeetsTarget, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
