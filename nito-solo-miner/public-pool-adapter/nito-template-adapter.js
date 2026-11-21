@@ -48,6 +48,9 @@ function normalizeNitoTemplate(raw) {
     }
     if (!HEX_32.test(tx.txid)) throw new Error(`transactions[${i}].txid must be 32-byte hex`);
     if (tx.hash !== undefined && !HEX_32.test(tx.hash)) throw new Error(`transactions[${i}].hash must be 32-byte hex`);
+    for (const key of ['fee', 'sigops', 'weight']) {
+      if (tx[key] !== undefined && (!Number.isSafeInteger(tx[key]) || tx[key] < 0)) throw new Error(`transactions[${i}].${key} must be a non-negative safe integer`);
+    }
     if (tx.depends !== undefined && (!Array.isArray(tx.depends) || tx.depends.some(d => !Number.isInteger(d) || d < 1 || d > raw.transactions.length || d === i + 1))) {
       throw new Error(`transactions[${i}].depends contains invalid 1-based indexes`);
     }
