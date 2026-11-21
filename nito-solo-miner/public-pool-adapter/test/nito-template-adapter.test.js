@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, compactBitsToTarget, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, compactBitsToTarget, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, getCoinbaseAuxScriptHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -46,6 +46,8 @@ test('preserves and validates optional GBT mining metadata', () => {
 test('coinbaseaux flags are validated and exposed as raw script bytes', () => {
   const template = normalizeNitoTemplate({ ...base, coinbaseaux: { flags: 'abcd' } });
   assert.equal(getCoinbaseAuxFlagsHex(template), 'abcd');
+  assert.equal(getCoinbaseAuxScriptHex(template), 'abcd');
+  assert.equal(getCoinbaseAuxScriptHex(normalizeNitoTemplate({ ...base, coinbaseaux: { flags: 'aa', extra: 'bb' } })), 'aabb');
   assert.equal(getCoinbaseAuxFlagsHex(normalizeNitoTemplate(base)), '');
   assert.throws(() => normalizeNitoTemplate({ ...base, coinbaseaux: { flags: 'xyz' } }), /hex values/);
 });
