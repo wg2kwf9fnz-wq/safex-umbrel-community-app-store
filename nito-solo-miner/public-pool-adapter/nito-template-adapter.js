@@ -277,6 +277,23 @@ function buildCoinbaseScriptSig({ height, flagsHex = '', extranonceHex, extraHex
   return Object.freeze({ scriptSigHex: script.toString('hex'), extranonceOffsetBytes: heightPush.length + flags.length, extranonceSizeBytes: extranonce.length });
 }
 
+/** Append a zero-value witness commitment output and enforce GBT coinbasevalue cap. */
+function buildCoinbaseOutputs({ payoutOutputs, template, witnessReservedValue = Buffer.alloc(32) }) {
+  if (!Array.isArray(payoutOutputs) || payoutOutputs.length === 0) throw new Error('payoutOutputs must be a non-empty array');
+  if (!template || !Array.isArray(template.transactions) || !Number.isSafeInteger(template.coinbasevalue)) throw new Error('normalized GBT template required');
+  const wtxids = template.transactions.map(tx => tx.hash);
+  if (wtxids.some(hash => !HEX_32.test(hash))) throw new Error('template transaction witness hash missing or invalid');
+  const commitment = computeWitnessCommitment(wtxids, witnessReservedValue);
+  const outputs = payoutOutputs.map(output => ({ ...output }));
+  outputs.push({ value: 0, scriptHex: witnessCommitmentScript(commitment).toString('hex') });
+  const total = outputs.reduce((sum, output) => {
+    if (!Number.isSafeInteger(output.value) || output.value < 0) throw new Error('payout output values must be non-negative safe integers');
+    return sum + output.value;
+  }, 0);
+  if (!Number.isSafeInteger(total) || total > template.coinbasevalue) throw new Error('coinbase outputs exceed template coinbasevalue');
+  return Object.freeze({ outputs: Object.freeze(outputs), witnessCommitmentHex: commitment.toString('hex'), totalValue: total });
+}
+
 /**
  * Serialize a coinbase transaction with one witness-reserved-value item.
  * ScriptSig bytes are supplied by the caller (including height/extranonce).
@@ -559,4 +576,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
