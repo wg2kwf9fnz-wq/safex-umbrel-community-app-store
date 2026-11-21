@@ -266,8 +266,9 @@ function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffe
   const versionBytes = Buffer.alloc(4); versionBytes.writeInt32LE(version);
   const lockBytes = Buffer.alloc(4); lockBytes.writeUInt32LE(lockTime);
   const stripped = Buffer.concat([versionBytes, compactSize(1), input, outputBytes, lockBytes]);
-  const witness = Buffer.concat([Buffer.from('0001', 'hex'), compactSize(1), compactSize(32), witnessReservedValue]);
-  const full = Buffer.concat([versionBytes, witness, compactSize(1), input, outputBytes, lockBytes]);
+  const witnessMarkerFlag = Buffer.from('0001', 'hex');
+  const witnessStack = Buffer.concat([compactSize(1), compactSize(32), witnessReservedValue]);
+  const full = Buffer.concat([versionBytes, witnessMarkerFlag, compactSize(1), input, outputBytes, witnessStack, lockBytes]);
   return Object.freeze({
     rawHex: full.toString('hex'),
     strippedHex: stripped.toString('hex'),
