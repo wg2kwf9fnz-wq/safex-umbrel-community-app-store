@@ -285,8 +285,10 @@ function buildCoinbaseOutputs({ payoutOutputs, template, witnessReservedValue = 
   const wtxids = template.transactions.map(tx => tx.hash);
   if (wtxids.some(hash => !HEX_32.test(hash))) throw new Error('template transaction witness hash missing or invalid');
   const commitment = computeWitnessCommitment(wtxids, witnessReservedValue);
+  const commitmentScript = witnessCommitmentScript(commitment);
+  if (template.default_witness_commitment !== undefined && witnessReservedValue.equals(Buffer.alloc(32)) && template.default_witness_commitment.toLowerCase() !== commitmentScript.toString('hex')) throw new Error('computed witness commitment does not match GBT default_witness_commitment');
   const outputs = payoutOutputs.map(output => ({ ...output }));
-  outputs.push({ value: 0, scriptHex: witnessCommitmentScript(commitment).toString('hex') });
+  outputs.push({ value: 0, scriptHex: commitmentScript.toString('hex') });
   const total = outputs.reduce((sum, output) => {
     if (!Number.isSafeInteger(output.value) || output.value < 0) throw new Error('payout output values must be non-negative safe integers');
     return sum + output.value;
