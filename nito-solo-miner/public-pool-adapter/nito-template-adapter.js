@@ -594,7 +594,7 @@ class NitoStratumBridge {
     if (!this.template) throw new Error('refreshTemplate must be called before creating jobs');
     this.purgeExpiredJobs();
     const job = createNitoStratumJob({ template: this.template, jobId, coinbaseParts, shareTarget, difficulty, cleanJobs });
-    this.jobs.set(jobId, { job, createdAt: this.now(), submittedHashes: new Set() });
+    this.jobs.set(jobId, { job, createdAt: this.now(), submittedHashes: new Set(), pendingHashes: new Set() });
     while (this.jobs.size > this.maxJobs) this.jobs.delete(this.jobs.keys().next().value);
     return job;
   }
@@ -604,7 +604,7 @@ class NitoStratumBridge {
     if (!entry) throw new Error('unknown or expired mining job');
     const processed = processNitoShare(entry.job, share);
     const hash = processed.headerCandidate.blockHashInternalHex;
-    if ((processed.meetsShareTarget || processed.meetsNetworkTarget) && entry.submittedHashes.has(hash)) return Object.freeze({ ...processed, duplicate: true, submitResult: null });
+    if ((processed.meetsShareTarget || processed.meetsNetworkTarget) && (entry.submittedHashes.has(hash) || entry.pendingHashes.has(hash))) return Object.freeze({ ...processed, duplicate: true, submitResult: null });
     const trackHash = () => {
       entry.submittedHashes.add(hash);
       while (entry.submittedHashes.size > this.maxTrackedSharesPerJob) entry.submittedHashes.delete(entry.submittedHashes.values().next().value);
@@ -613,10 +613,15 @@ class NitoStratumBridge {
       if (processed.meetsShareTarget) trackHash();
       return Object.freeze({ ...processed, duplicate: false, submitResult: null });
     }
-    // Track block hashes only after RPC returns; a transient RPC error may be retried.
-    const submitResult = await this.rpc.submitBlock(processed.candidate);
-    trackHash();
-    return Object.freeze({ ...processed, duplicate: false, submitResult });
+    // Reserve while submitting to prevent concurrent duplicate RPC calls. Remove on error so retry is possible.
+    entry.pendingHashes.add(hash);
+    try {
+      const submitResult = await this.rpc.submitBlock(processed.candidate);
+      trackHash();
+      return Object.freeze({ ...processed, duplicate: false, submitResult });
+    } finally {
+      entry.pendingHashes.delete(hash);
+    }
   }
 }
 
