@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, compactSize, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -52,6 +52,30 @@ test('single txid leaf returns its internal byte order', () => {
   const id = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0')).join('');
   const reversed = Array.from({ length: 32 }, (_, i) => (31 - i).toString(16).padStart(2, '0')).join('');
   assert.equal(txidMerkleRootInternal([id]).toString('hex'), reversed);
+});
+
+test('coinbase Merkle branch includes sibling path for one template tx', () => {
+  const txid = '22'.repeat(32);
+  const branch = coinbaseMerkleBranchInternal([txid]);
+  assert.deepEqual(branch, [Buffer.from(txid, 'hex').reverse().toString('hex')]);
+  const coinbaseId = '11'.repeat(32);
+  const root = applyCoinbaseMerkleBranchInternal(coinbaseId, branch);
+  assert.equal(root.toString('hex'), txidMerkleRootInternal([coinbaseId, txid]).toString('hex'));
+});
+
+test('coinbase Merkle branch handles odd transaction counts', () => {
+  const txids = ['22'.repeat(32), '33'.repeat(32), '44'.repeat(32)];
+  const branch = coinbaseMerkleBranchInternal(txids);
+  const coinbaseId = '11'.repeat(32);
+  assert.equal(applyCoinbaseMerkleBranchInternal(coinbaseId, branch).toString('hex'),
+    txidMerkleRootInternal([coinbaseId, ...txids]).toString('hex'));
+});
+
+test('empty transaction template returns an empty coinbase branch', () => {
+  assert.deepEqual(coinbaseMerkleBranchInternal([]), []);
+  const coinbaseId = '11'.repeat(32);
+  assert.equal(applyCoinbaseMerkleBranchInternal(coinbaseId, []).toString('hex'),
+    Buffer.from(coinbaseId, 'hex').reverse().toString('hex'));
 });
 
 test('CompactSize encodes the transaction count boundary', () => {
