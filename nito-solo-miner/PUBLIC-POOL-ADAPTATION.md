@@ -56,3 +56,8 @@ Use the official Public Pool Umbrel app as a packaging reference (server + UI + 
 `src/models/StratumV1Client.ts` computes a header double-SHA256 hash for share difficulty, and for a network-difficulty candidate calls `copyAndUpdateBlock`, serializes via `bitcoinjs.Block.toHex(false)`, then calls RPC `submitblock`. Nito docs say SHA-256 mining/header compatibility remains unchanged, but block serialization must be adapted to preserve opaque transaction bytes. This is a likely minimal seam for block-candidate submission.
 
 These findings narrow the first integration patch to template parsing/job construction and candidate-block serialization, but coinbase and witness commitment remain consensus-critical and must be tested before connecting miners.
+
+
+## Prototype test expansion
+
+The committed adapter test file now includes explicit two-leaf txid Merkle byte-order, odd-leaf duplication, and malformed candidate-envelope rejection cases. Ten tests passed in a scratch-copy run with Node.js 22; due to GitHub clone DNS restrictions in this environment, this is not a checkout-based run. These remain synthetic fixtures and do not establish Nito consensus compatibility.
