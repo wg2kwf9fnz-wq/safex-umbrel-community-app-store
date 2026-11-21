@@ -23,6 +23,6 @@ These are serialization and fixture-level helpers, not a complete chain adapter.
 
 ## Verification
 
-GitHub Actions run #64 passed 21 tests at commit `64d68db`. The suite now has **31 committed tests**, including candidate block assembly; latest CI result is not yet confirmed.
+GitHub Actions run #64 passed 21 tests at commit `64d68db`. GitHub Actions run #121 passed all **31 tests** at latest head `4504b479`, including candidate block assembly.
 
 No coinbase-height rules, payout-address validation, share difficulty/target validation, version rolling, timestamp policy, block consensus, `submitblock`, or live mining is implemented/verified.
