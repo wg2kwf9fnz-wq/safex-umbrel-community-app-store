@@ -16,34 +16,38 @@ Public Pool upstream reviewed at pinned commit `96a9202c11de2c6fc8d41155e2e77991
 
 Keep Stratum transport, statistics, API/UI where chain-neutral. These paths are investigation targets, not necessarily full rewrites.
 
-## Prototype adapter currently implemented
+## Prototype adapter implemented
 
 Dependency-free JavaScript helpers in `public-pool-adapter/nito-template-adapter.js`:
 
-- GBT envelope/rules and transaction metadata validation; raw transaction hex retained untouched.
+- GBT envelope/rules, mandatory target, optional mining metadata, and coinbaseaux hex validation; raw transaction hex is retained untouched.
 - Dependency index validation, ordering, closure-aware selection.
 - Txid Merkle root and coinbase Merkle branches in internal byte order.
-- Witness Merkle root using a null coinbase leaf, GBT witness hashes, commitment digest, and witness commitment OP_RETURN script encoding.
-- Coinbase transaction serialization with one 32-byte witness-reserved-value item, stripped serialization/txid, output-value limit, and extranonce split/reassembly.
+- Witness Merkle root using a null coinbase leaf, GBT witness hashes, commitment digest, witness commitment OP_RETURN script, and payout-output builder with reward cap.
+- Coinbase serialization with witness-reserved-value item, stripped serialization/txid, extranonce split/reassembly, and BIP34-style height script helper with minimal small-height opcodes.
 - Stratum template preparation and nine-field `mining.notify` formatting including previous-hash word order.
+- Compact `nBits` target decoder; difficulty-derived share target uses Nito v4 mainnet genesis `1d00ffff` as diff-1 baseline.
 - Standard 80-byte header serialization and double-SHA256 header hash.
 - Candidate block assembly from share nonce/time/extranonce, preserving raw template transaction bytes.
+- Private HTTP JSON-RPC client factory and injected RPC adapter seam.
+- Reusable server-side bridge: template refresh, bounded job cache with TTL/work-change invalidation, job creation with supplied or difficulty-derived share target, share processing, and guarded block submission.
 
-This is a compatibility prototype, not integrated into Public Pool. It compares hashes against a supplied share target and submits only network-target candidate, even if the pool share target is stricters through an injected RPC seam; pool difficulty derivation, time policy, version rolling, payout address/script validation, Nito consensus, and real `submitblock` RPC remain unintegrated.
+This is a compatibility prototype, not integrated into Public Pool. It does not validate pool-configured session difficulty, timestamp policy, version rolling, payout address/script, Nito consensus, or real RPC/block submission.
 
-## Source cross-check
+## Nito v4.0 source verification
 
-Inspected NitoNetwork/Nito-core v3.0.0:
-- `src/primitives/block.h` and `block.cpp`: standard 80-byte header serialization and HashWriter header hash.
-- `src/consensus/merkle.cpp`: txid-based block Merkle root; witness root uses a null coinbase leaf.
-- `src/primitives/transaction.cpp`: txid excludes witness; witness hash includes witness.
-- `src/rpc/mining.cpp`: GBT exposes `data`, `txid`, `hash`, `depends`, and standard witness rules.
+Inspected `NitoNetwork/Nito-core` tag/ref `v4.0`:
+- `src/primitives/block.cpp`: `CBlockHeader::GetHash()` uses `HashWriter{} << *this`.
+- `src/consensus/merkle.cpp`: txid block Merkle root uses `GetHash()`; witness root sets coinbase leaf null and uses `GetWitnessHash()` for other transactions.
+- `src/rpc/mining.cpp`: GBT emits raw `data`, `txid`, `hash` (witness hash), `depends`, and optional `default_witness_commitment`.
+- `src/primitives/transaction.cpp`: txid excludes witness; witness hash includes witness-like data.
+- `src/kernel/chainparams.cpp`: mainnet genesis bits `0x1d00ffff`, powLimit and 60-second target spacing.
 
-This confirms the inspected v3.0.0 behavior only. The user's target Nito v4 must be verified against its exact daemon/source and captured GBT fixtures; do not treat this cross-check as consensus proof.
+This is source-level verification only. No captured Nito v4 GBT fixture, regtest mining, candidate submission, or block confirmation has been performed.
 
 ## Test and CI checkpoint
 
-GitHub Actions run #393 passed **52 tests** at commit `4b6ac94f`, including optional GBT metadata validation, coinbase-height script helper, payout/witness-commitment output builder, reusable bridge lifecycle, share-target checks, and guarded submission. Fixtures are synthetic; no live/regtest mining or block submission has been performed.
+GitHub Actions run #516 passed **59 tests** at commit `4a1e4fe7`, including optional GBT metadata validation, minimal coinbase height opcode encodings, GBT default witness-commitment cross-check, TTL expiry, work-change job invalidation, bridge-boundary normalization, private JSON-RPC transport, difficulty-derived share targets, and compact nBits decoding. Fixtures are synthetic; no live/regtest mining or real block submission has been done.
 
 ## Integration roadmap
 
@@ -55,7 +59,7 @@ See [PUBLIC-POOL-INTEGRATION-PLAN.md](PUBLIC-POOL-INTEGRATION-PLAN.md) for exact
 2. Validate coinbase height/script rules, payout script/address and reward/fees against Nito.
 3. Compare txid/wtxid, witness commitment and header hashes against daemon-produced templates and known-good fixtures.
 4. Integrate the adapter into the pinned Public Pool fork's job/share path.
-5. Validate share targets, timestamp/version mutation policy, block serialization and RPC `submitblock` on regtest; confirm a block.
+5. Validate pool-configured share targets, timestamp/version mutation policy, block serialization and RPC `submitblock` on regtest; confirm a block.
 6. Package server + UI for Umbrel, pin images, test amd64/arm64, and review RPC isolation/auth/proxy rules.
 
 ## Umbrel packaging
