@@ -364,7 +364,7 @@ function createNitoStratumJob({ template, jobId, coinbaseParts, cleanJobs = fals
 /** Process a share into a candidate block and indicate whether it meets network target. */
 function processNitoShare(job, share) {
   if (!job || !job.preparedTemplate) throw new Error('Nito Stratum job required');
-  const candidate = buildCandidateBlockFromShare({
+  const headerCandidate = buildCandidateHeaderFromShare({
     preparedTemplate: job.preparedTemplate,
     coinbaseParts: job.coinbaseParts,
     extranonceHex: share.extraNonce2,
@@ -372,10 +372,12 @@ function processNitoShare(job, share) {
     timestamp: share.timestamp,
     version: share.version
   });
-  const meetsNetworkTarget = hashMeetsTarget(Buffer.from(candidate.blockHashInternalHex, 'hex'), job.networkTarget);
-  return Object.freeze({ candidate, meetsNetworkTarget });
+  const meetsNetworkTarget = hashMeetsTarget(Buffer.from(headerCandidate.blockHashInternalHex, 'hex'), job.networkTarget);
+  if (!meetsNetworkTarget) return Object.freeze({ headerCandidate, candidate: null, meetsNetworkTarget: false });
+  const block = serializeCandidateBlock(headerCandidate.headerHex, headerCandidate.coinbaseRawHex, job.preparedTemplate.transactions);
+  const candidate = Object.freeze({ ...headerCandidate, blockHex: block.toString('hex') });
+  return Object.freeze({ headerCandidate, candidate, meetsNetworkTarget: true });
 }
-
 /** Compare an internal-order proof-of-work hash against a display-order 256-bit target. */
 function hashMeetsTarget(hashInternal, targetHex) {
   if (!Buffer.isBuffer(hashInternal) || hashInternal.length !== 32) throw new Error('hash must be 32 bytes');
