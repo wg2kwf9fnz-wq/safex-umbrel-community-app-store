@@ -60,7 +60,7 @@ These findings narrow the first integration patch to template parsing/job constr
 
 ## Prototype test expansion
 
-The committed adapter test file includes explicit txid Merkle byte-order/odd-leaf tests, coinbase branch cases (empty, one tx, odd tx count), standard 80-byte header field-layout/hash tests, and malformed candidate-envelope rejection cases. Seventeen tests passed in a scratch-copy run with Node.js 22, including Merkle-root byte-order and odd-leaf cases; due to GitHub clone DNS restrictions in this environment, this is not a checkout-based run. GitHub Actions status for the latest commit has not been independently confirmed. These remain synthetic fixtures and do not establish Nito consensus compatibility.
+The committed adapter test file includes explicit txid Merkle byte-order/odd-leaf tests, coinbase branch cases (empty, one tx, odd tx count), standard 80-byte header field-layout/hash tests, and malformed candidate-envelope rejection cases. The earlier 11-test version passed in a scratch-copy run with Node.js 22; the suite now has 17 committed tests, but the six added tests have not yet been independently run outside CI; due to GitHub clone DNS restrictions in this environment, this is not a checkout-based run. GitHub Actions status for the latest commit has not been independently confirmed. These remain synthetic fixtures and do not establish Nito consensus compatibility.
 
 
 ## Nito Core source cross-check (v3.0.0)
