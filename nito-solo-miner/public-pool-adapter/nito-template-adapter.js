@@ -153,6 +153,12 @@ function computeWitnessCommitment(templateWtxids, reservedValue = Buffer.alloc(3
   return hash256(Buffer.concat([witnessMerkleRootInternal(templateWtxids), reservedValue]));
 }
 
+/** Encode the standard witness commitment OP_RETURN script (commitment is raw hash bytes). */
+function witnessCommitmentScript(commitment) {
+  if (!Buffer.isBuffer(commitment) || commitment.length !== 32) throw new Error('witness commitment must be 32 bytes');
+  return Buffer.concat([Buffer.from('6a24aa21a9ed', 'hex'), commitment]);
+}
+
 /**
  * Coinbase Merkle branch for a template transaction list.
  * Input txids are display-order hex. The coinbase is index 0; branches are
@@ -274,4 +280,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
