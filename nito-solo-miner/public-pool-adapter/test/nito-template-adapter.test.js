@@ -179,7 +179,10 @@ test('coinbase output builder appends witness commitment and enforces reward cap
 });
 
 test('coinbase height script number and extranonce placeholder are minimally encoded', () => {
-  assert.equal(encodeCoinbaseHeight(1).toString('hex'), '0101');
+  assert.equal(encodeCoinbaseHeight(0).toString('hex'), '00');
+  assert.equal(encodeCoinbaseHeight(1).toString('hex'), '51');
+  assert.equal(encodeCoinbaseHeight(16).toString('hex'), '60');
+  assert.equal(encodeCoinbaseHeight(17).toString('hex'), '0111');
   assert.equal(encodeCoinbaseHeight(128).toString('hex'), '028000');
   const built = buildCoinbaseScriptSig({ height: 123, flagsHex: 'abcd', extranonceHex: 'aabbccdd', extraHex: 'ee' });
   assert.equal(built.scriptSigHex, '017babcdaabbccddee');
