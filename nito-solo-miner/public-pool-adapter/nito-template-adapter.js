@@ -357,6 +357,8 @@ function serializeMiningHeader({ version, previousblockhash, merkleRootInternal,
 /** Build a stored Stratum job record and mining.notify payload from a normalized template. */
 function createNitoStratumJob({ template, jobId, coinbaseParts, cleanJobs = false }) {
   if (!template || typeof template.target !== 'string' || !HEX_32.test(template.target)) throw new Error('template target required for block-candidate comparison');
+  if (!coinbaseParts || !Number.isSafeInteger(coinbaseParts.totalValue) || coinbaseParts.totalValue < 0) throw new Error('coinbase parts must report a non-negative totalValue');
+  if (coinbaseParts.totalValue > template.coinbasevalue) throw new Error('coinbase output total exceeds template coinbasevalue');
   const preparedTemplate = prepareStratumTemplate(template);
   const notifyParams = formatMiningNotifyParams({ jobId, preparedTemplate, coinbaseParts, cleanJobs });
   return Object.freeze({ jobId, preparedTemplate, coinbaseParts, notifyParams, networkTarget: template.target.toLowerCase() });
@@ -379,6 +381,15 @@ function processNitoShare(job, share) {
   const candidate = Object.freeze({ ...headerCandidate, blockHex: block.toString('hex') });
   return Object.freeze({ headerCandidate, candidate, meetsNetworkTarget: true });
 }
+/** Process a share and submit a network-target candidate through the injected RPC adapter. */
+async function processAndSubmitNitoShare(job, share, rpcAdapter) {
+  if (!rpcAdapter || typeof rpcAdapter.submitBlock !== 'function') throw new TypeError('RPC adapter with submitBlock required');
+  const processed = processNitoShare(job, share);
+  if (!processed.meetsNetworkTarget) return Object.freeze({ ...processed, submitResult: null });
+  const submitResult = await rpcAdapter.submitBlock(processed.candidate);
+  return Object.freeze({ ...processed, submitResult });
+}
+
 /** Compare an internal-order proof-of-work hash against a display-order 256-bit target. */
 function hashMeetsTarget(hashInternal, targetHex) {
   if (!Buffer.isBuffer(hashInternal) || hashInternal.length !== 32) throw new Error('hash must be 32 bytes');
@@ -475,4 +486,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
