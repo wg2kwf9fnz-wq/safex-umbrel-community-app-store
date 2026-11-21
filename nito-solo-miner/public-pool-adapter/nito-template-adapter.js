@@ -355,13 +355,14 @@ function serializeMiningHeader({ version, previousblockhash, merkleRootInternal,
 }
 
 /** Build a stored Stratum job record and mining.notify payload from a normalized template. */
-function createNitoStratumJob({ template, jobId, coinbaseParts, cleanJobs = false }) {
+function createNitoStratumJob({ template, jobId, coinbaseParts, shareTarget, cleanJobs = false }) {
   if (!template || typeof template.target !== 'string' || !HEX_32.test(template.target)) throw new Error('template target required for block-candidate comparison');
+  if (typeof shareTarget !== 'string' || !HEX_32.test(shareTarget)) throw new Error('shareTarget must be a 32-byte target hex string');
   if (!coinbaseParts || !Number.isSafeInteger(coinbaseParts.totalValue) || coinbaseParts.totalValue < 0) throw new Error('coinbase parts must report a non-negative totalValue');
   if (coinbaseParts.totalValue > template.coinbasevalue) throw new Error('coinbase output total exceeds template coinbasevalue');
   const preparedTemplate = prepareStratumTemplate(template);
   const notifyParams = formatMiningNotifyParams({ jobId, preparedTemplate, coinbaseParts, cleanJobs });
-  return Object.freeze({ jobId, preparedTemplate, coinbaseParts, notifyParams, networkTarget: template.target.toLowerCase() });
+  return Object.freeze({ jobId, preparedTemplate, coinbaseParts, notifyParams, networkTarget: template.target.toLowerCase(), shareTarget: shareTarget.toLowerCase() });
 }
 
 /** Process a share into a candidate block and indicate whether it meets network target. */
@@ -375,17 +376,19 @@ function processNitoShare(job, share) {
     timestamp: share.timestamp,
     version: share.version
   });
-  const meetsNetworkTarget = hashMeetsTarget(Buffer.from(headerCandidate.blockHashInternalHex, 'hex'), job.networkTarget);
-  if (!meetsNetworkTarget) return Object.freeze({ headerCandidate, candidate: null, meetsNetworkTarget: false });
+  const headerHash = Buffer.from(headerCandidate.blockHashInternalHex, 'hex');
+  const meetsShareTarget = hashMeetsTarget(headerHash, job.shareTarget);
+  const meetsNetworkTarget = hashMeetsTarget(headerHash, job.networkTarget);
+  if (!meetsNetworkTarget) return Object.freeze({ headerCandidate, candidate: null, meetsShareTarget, meetsNetworkTarget: false });
   const block = serializeCandidateBlock(headerCandidate.headerHex, headerCandidate.coinbaseRawHex, job.preparedTemplate.transactions);
   const candidate = Object.freeze({ ...headerCandidate, blockHex: block.toString('hex') });
-  return Object.freeze({ headerCandidate, candidate, meetsNetworkTarget: true });
+  return Object.freeze({ headerCandidate, candidate, meetsShareTarget, meetsNetworkTarget: true });
 }
 /** Process a share and submit a network-target candidate through the injected RPC adapter. */
 async function processAndSubmitNitoShare(job, share, rpcAdapter) {
   if (!rpcAdapter || typeof rpcAdapter.submitBlock !== 'function') throw new TypeError('RPC adapter with submitBlock required');
   const processed = processNitoShare(job, share);
-  if (!processed.meetsNetworkTarget) return Object.freeze({ ...processed, submitResult: null });
+  if (!processed.meetsShareTarget || !processed.meetsNetworkTarget) return Object.freeze({ ...processed, submitResult: null });
   const submitResult = await rpcAdapter.submitBlock(processed.candidate);
   return Object.freeze({ ...processed, submitResult });
 }
