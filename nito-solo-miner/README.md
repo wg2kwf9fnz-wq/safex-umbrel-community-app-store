@@ -8,6 +8,10 @@
 
 Retain/adapt Public Pool's dashboard and statistics. Node RPC stays private between the node and pool server; never expose RPC to miners or WAN.
 
+## Integration roadmap
+
+Exact pinned Public Pool source seams and release gates are documented in [PUBLIC-POOL-INTEGRATION-PLAN.md](PUBLIC-POOL-INTEGRATION-PLAN.md). This is a plan, not an applied upstream patch.
+
 ## Upstream assessment
 
 Public Pool upstream: https://github.com/benjamin-wilson/public-pool  
