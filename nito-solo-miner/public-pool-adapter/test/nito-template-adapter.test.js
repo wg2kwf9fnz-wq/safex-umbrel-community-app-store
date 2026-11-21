@@ -361,6 +361,10 @@ test('difficulty converts to share targets with Nito diff-one baseline', () => {
   assert.equal(difficultyToTarget('1e3'), (BigInt('0x' + diff1) / 1000n).toString(16).padStart(64, '0'));
   assert.throws(() => difficultyToTarget(0), /positive/);
   assert.throws(() => difficultyToTarget('not-difficulty'), /decimal/);
+  const template = normalizeNitoTemplate(base);
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  const job = createNitoStratumJob({ template, jobId: 'difficulty-job', coinbaseParts: parts, difficulty: 2 });
+  assert.equal(job.shareTarget, difficultyToTarget(2));
 });
 
 test('Stratum job requires a valid share target', () => {
