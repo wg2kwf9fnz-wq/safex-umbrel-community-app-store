@@ -230,7 +230,7 @@ test('header serializer rejects invalid nonce and compact bits', () => {
 test('Stratum bridge builds job notify and flags network-target candidate', () => {
   const template = normalizeNitoTemplate({ ...base, target: 'ff'.repeat(32) });
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 100, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
-  const job = createNitoStratumJob({ template, jobId: 'job-1', coinbaseParts: parts, cleanJobs: true });
+  const job = createNitoStratumJob({ template, jobId: 'job-1', coinbaseParts: parts, shareTarget: 'ff'.repeat(32), cleanJobs: true });
   assert.equal(job.notifyParams[0], 'job-1');
   const processed = processNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
   assert.equal(processed.meetsNetworkTarget, true);
@@ -240,7 +240,7 @@ test('Stratum bridge builds job notify and flags network-target candidate', () =
 test('Stratum bridge rejects missing target and flags non-candidate hash', () => {
   const template = normalizeNitoTemplate({ ...base, target: '00'.repeat(32) });
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 100, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
-  const job = createNitoStratumJob({ template, jobId: 'job-2', coinbaseParts: parts });
+  const job = createNitoStratumJob({ template, jobId: 'job-2', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
   const processed = processNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
   assert.equal(processed.meetsNetworkTarget, false);
   assert.equal(processed.candidate, null);
@@ -252,20 +252,20 @@ test('Stratum bridge rejects missing target and flags non-candidate hash', () =>
 test('Stratum job enforces template coinbase reward cap', () => {
   const template = normalizeNitoTemplate(base);
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 100, scriptHex: '51' }], maxValue: template.coinbasevalue, extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
-  assert.throws(() => createNitoStratumJob({ template, jobId: 'reward-cap', coinbaseParts: { ...parts, totalValue: template.coinbasevalue + 1 } }), /exceeds template coinbasevalue/);
+  assert.throws(() => createNitoStratumJob({ template, jobId: 'reward-cap', coinbaseParts: { ...parts, totalValue: template.coinbasevalue + 1 }, shareTarget: 'ff'.repeat(32) }), /exceeds template coinbasevalue/);
 });
 
 test('network candidate share submits via RPC adapter and non-candidate is not submitted', async () => {
   const template = normalizeNitoTemplate({ ...base, target: 'ff'.repeat(32) });
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 100, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
-  const job = createNitoStratumJob({ template, jobId: 'submit-test', coinbaseParts: parts });
+  const job = createNitoStratumJob({ template, jobId: 'submit-test', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
   const submitted = [];
   const rpc = { submitBlock: async block => { submitted.push(block.blockHex); return 'accepted'; } };
   const result = await processAndSubmitNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime }, rpc);
   assert.equal(result.meetsNetworkTarget, true);
   assert.equal(result.submitResult, 'accepted');
   assert.equal(submitted.length, 1);
-  const lowTargetJob = createNitoStratumJob({ template: { ...template, target: '00'.repeat(32) }, jobId: 'nonblock', coinbaseParts: parts });
+  const lowTargetJob = createNitoStratumJob({ template: { ...template, target: '00'.repeat(32) }, jobId: 'nonblock', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
   const rejected = await processAndSubmitNitoShare(lowTargetJob, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime }, rpc);
   assert.equal(rejected.meetsNetworkTarget, false);
   assert.equal(rejected.submitResult, null);
