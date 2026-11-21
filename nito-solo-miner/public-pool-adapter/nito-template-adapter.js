@@ -477,6 +477,32 @@ function hashMeetsTarget(hashInternal, targetHex) {
   return BigInt('0x' + hashDisplay) <= BigInt('0x' + targetHex);
 }
 
+/** Create a JSON-RPC 1.0 call function for a private node endpoint. Never logs credentials. */
+function createJsonRpcCall({ url, username, password, fetchImpl = globalThis.fetch, timeoutMs = 15000 }) {
+  let id = 0;
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error('RPC URL must be HTTP(S)');
+  if (typeof username !== 'string' || !username || typeof password !== 'string' || !password) throw new Error('RPC username and password are required');
+  if (typeof fetchImpl !== 'function') throw new TypeError('fetch implementation required');
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new RangeError('timeoutMs must be positive');
+  const authorization = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
+  return async function callRpc(method, params = []) {
+    if (typeof method !== 'string' || !method || !Array.isArray(params)) throw new Error('RPC method and params are required');
+    const requestId = ++id;
+    const response = await fetchImpl(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization },
+      body: JSON.stringify({ jsonrpc: '1.0', id: requestId, method, params }),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!response || !response.ok) throw new Error(`RPC HTTP request failed (${response ? response.status : 'no response'})`);
+    const payload = await response.json();
+    if (!payload || payload.id !== requestId) throw new Error('RPC response id mismatch');
+    if (payload.error) throw new Error(`RPC ${method} failed (${payload.error.code ?? 'unknown'}): ${payload.error.message ?? 'unknown error'}`);
+    if (!Object.prototype.hasOwnProperty.call(payload, 'result')) throw new Error('RPC response missing result');
+    return payload.result;
+  };
+}
+
 /** Inject an RPC call function to make the Nito template/submission seam testable. */
 function createNitoRpcAdapter(callRpc) {
   if (typeof callRpc !== 'function') throw new TypeError('callRpc must be a function');
