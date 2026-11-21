@@ -253,6 +253,30 @@ function prepareStratumTemplate(template) {
   });
 }
 
+/** Encode a non-negative height as a minimally encoded script number push. */
+function encodeCoinbaseHeight(height) {
+  if (!Number.isSafeInteger(height) || height < 0) throw new RangeError('coinbase height must be non-negative safe integer');
+  if (height === 0) return Buffer.from([0]);
+  let n = BigInt(height), bytes = [];
+  while (n > 0n) { bytes.push(Number(n & 0xffn)); n >>= 8n; }
+  if (bytes[bytes.length - 1] & 0x80) bytes.push(0);
+  const payload = Buffer.from(bytes);
+  if (payload.length <= 75) return Buffer.concat([Buffer.from([payload.length]), payload]);
+  throw new RangeError('coinbase height script number too large');
+}
+
+/** Build a BIP34-style coinbase scriptSig and return extranonce split offsets. */
+function buildCoinbaseScriptSig({ height, flagsHex = '', extranonceHex, extraHex = '' }) {
+  if (typeof flagsHex !== 'string' || !/^(?:[0-9a-fA-F]{2})*$/.test(flagsHex)) throw new Error('coinbase flags must be hex');
+  if (typeof extranonceHex !== 'string' || !/^(?:[0-9a-fA-F]{2})+$/.test(extranonceHex)) throw new Error('extranonce placeholder must be non-empty hex');
+  if (typeof extraHex !== 'string' || !/^(?:[0-9a-fA-F]{2})*$/.test(extraHex)) throw new Error('extra coinbase script bytes must be hex');
+  const heightPush = encodeCoinbaseHeight(height);
+  const flags = Buffer.from(flagsHex, 'hex'), extranonce = Buffer.from(extranonceHex, 'hex'), extra = Buffer.from(extraHex, 'hex');
+  const script = Buffer.concat([heightPush, flags, extranonce, extra]);
+  if (script.length < 2 || script.length > 100) throw new Error('coinbase scriptSig must be 2..100 bytes');
+  return Object.freeze({ scriptSigHex: script.toString('hex'), extranonceOffsetBytes: heightPush.length + flags.length, extranonceSizeBytes: extranonce.length });
+}
+
 /**
  * Serialize a coinbase transaction with one witness-reserved-value item.
  * ScriptSig bytes are supplied by the caller (including height/extranonce).
@@ -535,4 +559,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
