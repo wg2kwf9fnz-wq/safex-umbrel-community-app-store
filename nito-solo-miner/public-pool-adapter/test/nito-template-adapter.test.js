@@ -242,6 +242,7 @@ test('Stratum bridge rejects missing target and flags non-candidate hash', () =>
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 100, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
   const job = createNitoStratumJob({ template, jobId: 'job-2', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
   const processed = processNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
+  assert.equal(processed.meetsShareTarget, true);
   assert.equal(processed.meetsNetworkTarget, false);
   assert.equal(processed.candidate, null);
   assert.ok(processed.headerCandidate);
@@ -270,6 +271,18 @@ test('network candidate share submits via RPC adapter and non-candidate is not s
   assert.equal(rejected.meetsNetworkTarget, false);
   assert.equal(rejected.submitResult, null);
   assert.equal(submitted.length, 1);
+});
+
+test('share target rejection prevents submission even if block target is met', async () => {
+  const template = normalizeNitoTemplate({ ...base, target: 'ff'.repeat(32) });
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  const job = createNitoStratumJob({ template, jobId: 'reject-share', coinbaseParts: parts, shareTarget: '00'.repeat(32) });
+  let calls = 0;
+  const result = await processAndSubmitNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime }, { submitBlock: async () => { calls++; return 'accepted'; } });
+  assert.equal(result.meetsShareTarget, false);
+  assert.equal(result.meetsNetworkTarget, true);
+  assert.equal(result.submitResult, null);
+  assert.equal(calls, 0);
 });
 
 test('Stratum job requires a valid share target', () => {
