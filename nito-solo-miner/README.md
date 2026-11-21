@@ -26,13 +26,15 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 - Implements normalized Stratum template preparation and nine-field `mining.notify` formatting, including previous-hash word order.
 - Implements 80-byte header serialization/hash and candidate-block assembly from share nonce/time/extranonce while preserving opaque GBT transaction bytes; full block serialization occurs only for network-target candidates.
 - Added a GitHub Actions workflow with syntax checks and Node tests.
+- Added guarded network-candidate submission through the injected RPC seam; ordinary shares never trigger `submitblock`.
+- Enforced the coinbase output reward cap at job creation.
 - Added an injectable Nito RPC adapter seam for GBT retrieval and `submitblock`, plus a Stratum job/share bridge that builds `mining.notify` and assembles candidate blocks.
 - Added pure RPC payload helpers for `getblocktemplate` and `submitblock` (no RPC call yet).
 
 ## Verification status
 
 - GitHub Actions run #64 passed 21 tests at commit `64d68db`.
-- GitHub Actions run #141 passed all **33 tests** at commit `1b1dfc4f`; the latest suite has expanded to 34 tests and is awaiting CI.
+- GitHub Actions run #141 passed all **33 tests** at commit `1b1dfc4f`; the latest suite has expanded to 40 tests and is awaiting CI.
 - No Nito v4 captured GBT fixture, Nito regtest `submitblock`, live mining, share-difficulty validation, or consensus validation has been performed.
 - The adapter is still not integrated into Public Pool's actual server.
 
