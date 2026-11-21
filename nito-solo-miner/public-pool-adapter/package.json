@@ -1,0 +1,15 @@
+{
+  "name": "nito-public-pool-adapter-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dependency-free Nito GBT, coinbase, header, Stratum and RPC compatibility prototype",
+  "main": "nito-template-adapter.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test test/nito-template-adapter.test.js",
+    "check": "node --check nito-template-adapter.js && node --check test/nito-template-adapter.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

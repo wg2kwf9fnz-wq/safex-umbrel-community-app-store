@@ -1,0 +1,29 @@
+name: Nito adapter prototype tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - nito-stratum-wallet-prototype
+  pull_request:
+    paths:
+      - "nito-solo-miner/public-pool-adapter/**"
+      - "nito-solo-miner/tests/rpc_mining_probe.py"
+      - ".github/workflows/nito-adapter-tests.yml"
+
+jobs:
+  adapter-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntax-check adapter and tests
+        working-directory: nito-solo-miner/public-pool-adapter
+        run: |
+          npm run check
+          python3 -m py_compile ../tests/rpc_mining_probe.py
+      - name: Run prototype tests
+        working-directory: nito-solo-miner/public-pool-adapter
+        run: node --test test/nito-template-adapter.test.js
