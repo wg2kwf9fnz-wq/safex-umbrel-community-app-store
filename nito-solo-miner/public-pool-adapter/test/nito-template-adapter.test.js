@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -52,6 +52,23 @@ test('single txid leaf returns its internal byte order', () => {
   const id = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0')).join('');
   const reversed = Array.from({ length: 32 }, (_, i) => (31 - i).toString(16).padStart(2, '0')).join('');
   assert.equal(txidMerkleRootInternal([id]).toString('hex'), reversed);
+});
+
+test('witness Merkle root uses a null coinbase leaf and GBT witness hashes', () => {
+  const wtxid = '66'.repeat(32);
+  const zero = '00'.repeat(32);
+  assert.equal(witnessMerkleRootInternal([wtxid]).toString('hex'),
+    txidMerkleRootInternal([zero, wtxid]).toString('hex'));
+});
+
+test('witness commitment hashes root with 32-byte reserved value', () => {
+  const wtxids = ['66'.repeat(32), '77'.repeat(32)];
+  const reserved = Buffer.alloc(32, 0x88);
+  const root = witnessMerkleRootInternal(wtxids);
+  const expected = require('node:crypto').createHash('sha256')
+    .update(require('node:crypto').createHash('sha256').update(Buffer.concat([root, reserved])).digest()).digest();
+  assert.equal(computeWitnessCommitment(wtxids, reserved).toString('hex'), expected.toString('hex'));
+  assert.throws(() => computeWitnessCommitment(wtxids, Buffer.alloc(31)), /32 bytes/);
 });
 
 test('coinbase Merkle branch includes sibling path for one template tx', () => {
