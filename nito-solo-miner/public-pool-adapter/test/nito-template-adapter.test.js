@@ -202,7 +202,7 @@ test('coinbase output builder cross-checks GBT default witness commitment', () =
   const expected = witnessCommitmentScript(computeWitnessCommitment(template.transactions.map(tx => tx.hash), reserved)).toString('hex');
   const withDefault = normalizeNitoTemplate({ ...base, default_witness_commitment: expected });
   assert.equal(buildCoinbaseOutputs({ payoutOutputs: [{ value: 1, scriptHex: '51' }], template: withDefault }).outputs.at(-1).scriptHex, expected);
-  assert.throws(() => buildCoinbaseOutputs({ payoutOutputs: [{ value: 1, scriptHex: '51' }], template: normalizeNitoTemplate({ ...base, default_witness_commitment: '6a' }) }), /does not match GBT/);
+  assert.throws(() => buildCoinbaseOutputs({ payoutOutputs: [{ value: 1, scriptHex: '51' }], template: normalizeNitoTemplate({ ...base, default_witness_commitment: '6a24aa21a9ed' + '00'.repeat(32) }) }), /does not match GBT/);
   assert.throws(() => buildCoinbaseOutputs({ payoutOutputs: [{ value: 1, scriptHex: '51' }], template, witnessReservedValue: Buffer.alloc(31) }), /32 bytes/);
 });
 
