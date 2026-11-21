@@ -1,55 +1,54 @@
 # Nito Solo Mining with Public Pool — compatibility prototype
 
-**Development checkpoint only. Not installable or production-ready.** The goal is to run a self-hosted Stratum server against the user's own Nito node, using Ben Wilson's Public Pool project and its UI where possible.
+**Development checkpoint only. Not installable or production-ready.**
 
 ## Target architecture
 
-`Nito Core node (Umbrel)` → `Public Pool server (adapted)` → `ASIC miners over Stratum V1`
+`Nito Core node (Umbrel)` → `adapted Public Pool server` → `ASIC miners over Stratum V1`
 
-The Public Pool UI should be retained/adapted for dashboard, worker and share stats. The Umbrel app will connect to the local node over private RPC; RPC must never be exposed to miners or the WAN.
+Retain/adapt Public Pool's dashboard and statistics. Node RPC stays private between the node and pool server; never expose RPC to miners or WAN.
 
-## Public Pool assessment
+## Upstream assessment
 
-Upstream project: [benjamin-wilson/public-pool](https://github.com/benjamin-wilson/public-pool)  
-Upstream UI: [public-pool-ui](https://github.com/benjamin-wilson/public-pool-ui)  
-Umbrel packaging reference: [official Public Pool Umbrel app](https://github.com/getumbrel/umbrel-apps/tree/master/public-pool)
+Public Pool upstream: https://github.com/benjamin-wilson/public-pool  
+UI: https://github.com/benjamin-wilson/public-pool-ui  
+Umbrel packaging reference: https://github.com/getumbrel/umbrel-apps/tree/master/public-pool
 
-Public Pool is **not a drop-in Nito Stratum server**. Its server is Bitcoin-specific and depends on Bitcoin-oriented data models and `bitcoinjs-lib` block/transaction primitives. Merely changing the RPC URL and port is not sufficient.
+Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds transactions and blocks using Bitcoin-oriented models. Merely changing the RPC endpoint is insufficient.
 
-Upstream code inspection confirms:
-- RPC requests are hard-coded around `BITCOIN_RPC_*` settings and Bitcoin RPC methods.
-- `getblocktemplate` is requested with `rules: ['segwit']`.
-- Its template model expects Bitcoin-style fields including version bits, coinbase auxiliary data, target/bits, nonce range, mutable fields, sigop/size/weight limits and witness commitment.
-- Each transaction is represented with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, and `weight`.
-- Its Stratum job/block assembly uses Bitcoin block/transaction primitives, computes a Bitcoin-style header hash, and submits a serialized full block via RPC.
+## Work completed
 
-Nito v4's pool-compatibility contract is stricter than a superficial RPC compatibility check: preserve raw transaction bytes and dependencies, txid Merkle semantics, witness commitment semantics, and opaque Orchard transaction bytes. The adapted server must not parse/rebuild or strip Nito-specific transaction payloads incorrectly.
+- Reviewed Public Pool's RPC, template, Stratum job, MiningJob and share-submission paths at pinned upstream commit `96a9202c11de2c6fc8d41155e2e779912a476dc7`.
+- Confirmed from inspected Nito Core v3.0.0 source that its block header serialization is the standard 80-byte layout, header hash uses HashWriter, block Merkle root uses txids, and witness Merkle root uses a null coinbase leaf. This source cross-check is **not** proof for current Nito v4.
+- Prototype adapter validates the GBT envelope/rules/transaction metadata, preserves raw transaction hex, dependency indexes/order and dependency closure.
+- Implements txid Merkle roots, coinbase Merkle branches, witness Merkle root/commitment digest, commitment OP_RETURN script encoding.
+- Implements basic coinbase serialization with witness reserved value, stripped txid calculation, extranonce split/reassembly.
+- Implements normalized Stratum template preparation and nine-field `mining.notify` formatting, including previous-hash word order.
+- Implements 80-byte header serialization/hash and candidate-block assembly from share nonce/time/extranonce while preserving opaque GBT transaction bytes.
+- Added a GitHub Actions workflow with syntax checks and Node tests.
 
-## Work done
+## Verification status
 
-- Existing read-only Nito RPC probe checks node info and the basic mining template fields.
-- Reviewed Public Pool's upstream RPC service, template interface, package dependencies and Docker deployment model.
-- Identified likely adaptation boundary: isolate chain-specific RPC/template parsing, transaction/block serialization, coinbase construction, merkle calculation, header hashing and block submission behind a Nito adapter. Keep Stratum protocol, web/API/statistics and UI wherever those components remain chain-neutral.
-- Confirmed the official Umbrel packaging model separates UI, Stratum/API server, proxy and persistent database; we can adapt this structure rather than inventing a dashboard.
+- GitHub Actions run #64 passed 21 tests at commit `64d68db`.
+- The branch has since expanded to **31 committed tests**. Latest CI has not yet been confirmed.
+- No Nito v4 captured GBT fixture, Nito regtest `submitblock`, live mining, share-difficulty validation, or consensus validation has been performed.
+- The adapter is still not integrated into Public Pool's actual server.
 
 ## Next engineering steps
 
-1. Pin a specific Public Pool upstream commit and license notices for the fork.
-2. Create a Nito chain adapter and make the server build against it; remove Bitcoin-specific address validation/coinbase/block construction where required.
-3. Create deterministic Nito v4 GBT fixtures, including templates with Orchard transactions, and unit-test byte preservation, dependencies, Merkle roots, witness commitments and coinbase outputs.
-4. Add Nito regtest integration tests for template retrieval, share validation, block serialization, `submitblock`, and block confirmation.
-5. Only after the compatibility tests pass, package the adapted server + upstream UI for Umbrel and publish pinned multi-arch images.
+1. Verify CI for the latest suite and fix any failures.
+2. Build captured Nito v4/regtest GBT fixtures, including Orchard transactions.
+3. Validate coinbase height/script rules, payout script/address, reward limits, witness commitment and txid/wtxid semantics against the exact Nito daemon.
+4. Integrate the raw-transaction path into a pinned Public Pool fork: job creation, Stratum submission/share validation, candidate block serialization and RPC `submitblock`.
+5. Test candidate blocks on Nito regtest, then package/publish multi-arch Umbrel images.
 
-## Safety / release gates
+## Release gates
 
-- [ ] Public Pool fork pinned to a commit; GPL-3.0 obligations preserved.
-- [ ] No RPC credentials in UI or Stratum configuration; RPC stays private to the node/server network.
-- [ ] Mainnet template fixture tests and Nito regtest submission tests pass.
-- [ ] UI/API auth and Umbrel proxy rules reviewed; Stratum exposed only on intended LAN port.
-- [ ] amd64 and arm64 images built and tested.
+- [ ] Public Pool source pinned and GPL-3.0 notices preserved.
+- [ ] RPC credentials remain server-side and RPC is private.
+- [ ] Nito v4 fixture/consensus tests pass.
+- [ ] Regtest candidate submission and block confirmation pass.
+- [ ] Stratum share validation, UI/API auth and Umbrel proxy reviewed.
+- [ ] amd64/arm64 images built and tested.
 
-No mining, block submission, wallet creation, or live node changes have been performed.
-
-## Prototype code checkpoint
-
-An isolated, dependency-free JavaScript adapter prototype now lives in `public-pool-adapter/`. It validates the GBT envelope, retains transaction `data` as opaque hex, checks dependency ordering/closure, and includes txid Merkle, coinbase branch, header serialization/hash helpers. Seventeen Node built-in tests passed against a scratch copy of the prototype, including Merkle-root byte-order/odd-leaf cases. The branch could not be cloned here, so this is not checkout-based verification; GitHub Actions status has not been confirmed for the latest commit. It is **not wired into Public Pool** and does not yet implement coinbase, witness commitment, header/share validation, block serialization or submission.
+No wallet creation, live mining, block submission, or main-branch changes have been performed.
