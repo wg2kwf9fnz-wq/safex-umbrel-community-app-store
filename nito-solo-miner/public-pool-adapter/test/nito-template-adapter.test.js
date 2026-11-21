@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -246,6 +246,28 @@ test('target comparison interprets header hash in display byte order', () => {
   assert.equal(hashMeetsTarget(Buffer.alloc(32, 0xff), '00'.repeat(32)), false);
   assert.equal(hashMeetsTarget(Buffer.alloc(32, 0xff), 'ff'.repeat(32)), true);
   assert.throws(() => hashMeetsTarget(Buffer.alloc(31), 'ff'.repeat(32)), /32 bytes/);
+});
+
+test('injected Nito RPC adapter requests and normalizes a GBT', async () => {
+  const calls = [];
+  const rpc = createNitoRpcAdapter(async (method, params) => {
+    calls.push({ method, params });
+    return base;
+  });
+  const template = await rpc.getBlockTemplate();
+  assert.equal(template.height, base.height);
+  assert.equal(template.transactions[0].data, base.transactions[0].data);
+  assert.equal(calls[0].method, 'getblocktemplate');
+  assert.deepEqual(calls[0].params, createGetBlockTemplateRequest().params);
+});
+
+test('injected Nito RPC adapter submits only validated raw block hex', async () => {
+  let seen;
+  const rpc = createNitoRpcAdapter(async (method, params) => { seen = { method, params }; return null; });
+  const result = await rpc.submitBlock({ blockHex: 'deadbeef' });
+  assert.equal(result, null);
+  assert.deepEqual(seen, { method: 'submitblock', params: ['deadbeef'] });
+  assert.throws(() => createNitoRpcAdapter(null), /callRpc/);
 });
 
 test('getblocktemplate request includes template mode and segwit rule', () => {
