@@ -178,6 +178,15 @@ test('coinbase output builder appends witness commitment and enforces reward cap
   assert.throws(() => buildCoinbaseOutputs({ payoutOutputs: [{ value: template.coinbasevalue + 1, scriptHex: '51' }], template }), /exceed template coinbasevalue/);
 });
 
+test('coinbase output builder cross-checks GBT default witness commitment', () => {
+  const template = normalizeNitoTemplate(base);
+  const reserved = Buffer.alloc(32);
+  const expected = witnessCommitmentScript(computeWitnessCommitment(template.transactions.map(tx => tx.hash), reserved)).toString('hex');
+  const withDefault = normalizeNitoTemplate({ ...base, default_witness_commitment: expected });
+  assert.equal(buildCoinbaseOutputs({ payoutOutputs: [{ value: 1, scriptHex: '51' }], template: withDefault }).outputs.at(-1).scriptHex, expected);
+  assert.throws(() => buildCoinbaseOutputs({ payoutOutputs: [{ value: 1, scriptHex: '51' }], template: normalizeNitoTemplate({ ...base, default_witness_commitment: '6a' }) }), /does not match GBT/);
+});
+
 test('coinbase height script number and extranonce placeholder are minimally encoded', () => {
   assert.equal(encodeCoinbaseHeight(0).toString('hex'), '00');
   assert.equal(encodeCoinbaseHeight(1).toString('hex'), '51');
