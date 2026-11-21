@@ -287,16 +287,18 @@ function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffe
     result.coinbasePart2 = full.subarray(rawSplit + extranonceSizeBytes).toString('hex');
     result.coinbaseStrippedPart1 = stripped.subarray(0, strippedSplit).toString('hex');
     result.coinbaseStrippedPart2 = stripped.subarray(strippedSplit + extranonceSizeBytes).toString('hex');
+    result.extranonceSizeBytes = extranonceSizeBytes;
   }
   return Object.freeze(result);
 }
 
 /** Reassemble split coinbase parts with a miner extranonce and calculate its txid. */
-function assembleCoinbaseFromParts({ coinbasePart1, coinbasePart2, coinbaseStrippedPart1, coinbaseStrippedPart2, extranonceHex }) {
+function assembleCoinbaseFromParts({ coinbasePart1, coinbasePart2, coinbaseStrippedPart1, coinbaseStrippedPart2, extranonceSizeBytes, extranonceHex }) {
   if (![coinbasePart1, coinbasePart2, coinbaseStrippedPart1, coinbaseStrippedPart2].every(s => typeof s === 'string' && /^[0-9a-fA-F]*$/.test(s))) {
     throw new Error('coinbase parts must be hex strings');
   }
   if (typeof extranonceHex !== 'string' || !/^(?:[0-9a-fA-F]{2})+$/.test(extranonceHex)) throw new Error('extranonce must be non-empty hex');
+  if (!Number.isSafeInteger(extranonceSizeBytes) || extranonceSizeBytes <= 0 || Buffer.from(extranonceHex, 'hex').length !== extranonceSizeBytes) throw new Error('extranonce length does not match placeholder size');
   const full = Buffer.concat([Buffer.from(coinbasePart1, 'hex'), Buffer.from(extranonceHex, 'hex'), Buffer.from(coinbasePart2, 'hex')]);
   const stripped = Buffer.concat([Buffer.from(coinbaseStrippedPart1, 'hex'), Buffer.from(extranonceHex, 'hex'), Buffer.from(coinbaseStrippedPart2, 'hex')]);
   return Object.freeze({ rawHex: full.toString('hex'), strippedHex: stripped.toString('hex'), txid: Buffer.from(hash256(stripped)).reverse().toString('hex') });
