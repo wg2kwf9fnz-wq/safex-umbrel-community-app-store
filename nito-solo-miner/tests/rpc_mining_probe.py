@@ -4,6 +4,7 @@
 Usage:
   NITO_RPC_USER=... NITO_RPC_PASSWORD=... python3 tests/rpc_mining_probe.py
 Optional: NITO_RPC_URL=http://127.0.0.1:8825
+Optional: NITO_RPC_COOKIE_FILE=/path/to/.cookie (preferred when node uses cookie auth)
 Optional: NITO_GBT_FIXTURE_PATH=./nito-v4-GBT-fixture.json (writes raw template with mode 0600)
 """
 import json
