@@ -1,35 +1,40 @@
-# Nito Solo Miner + Wallet — development checkpoint
+# Nito Solo Miner + Wallet — prototype
 
-**Status: design/compatibility work; not installable yet.** This folder is intentionally not an Umbrel app manifest until the Stratum implementation and wallet-enabled node have been built, tested, and pinned.
+**Not installable or production-ready yet.** This is a development branch with a wallet-enabled build recipe and compatibility probe. No app manifest or published image is present.
 
-## Goal
+## Compatibility findings (Nito Core v4.0.0 docs/source)
 
-Extend the existing Nito Umbrel node into an optional, LAN-facing solo-mining service for SHA-256 ASICs, with a separate wallet-enabled component for receiving/spending NITO. Preserve the existing `saltedlolly-nito` app and its chain data; this is a separate app/prototype.
+- Mining uses SHA-256 and keeps the established ASIC/header hashing compatibility.
+- Nito's pool compatibility contract requires v4 daemon templates, preserving complete transaction bytes, respecting `depends`, using txids for the transaction Merkle tree, and preserving witness commitment semantics.
+- Orchard transactions must be treated as opaque bytes; pools must not strip, normalize, or reconstruct them.
+- Pools submit the complete block via `submitblock`.
+- Upstream's `docker-nito` build uses `NO_WALLET=1`; this branch adds a separate wallet-enabled headless Dockerfile using the documented `NO_QT=1`, SQLite and Berkeley DB build profile.
 
-## Findings (checked against Nito Core v4.0.0)
+Official compatibility and wallet documentation:
+- [Mining and pool compatibility](https://github.com/NitoNetwork/Nito-core/blob/v4.0.0/doc/nito/mining-pool-compatibility.md)
+- [Source build profiles](https://github.com/NitoNetwork/Nito-core/blob/v4.0.0/doc/nito/source-builds.md)
+- [Wallet backup/restore](https://github.com/NitoNetwork/Nito-core/blob/v4.0.0/doc/nito/wallet-backup-restore.md)
+- [Testing and validation](https://github.com/NitoNetwork/Nito-core/blob/v4.0.0/doc/nito/testing-validation.md)
 
-- Nito Core exposes Bitcoin-style `getblocktemplate` and `submitblock` RPC mining interfaces (the mining RPC implementation is in upstream `src/rpc/mining.cpp`).
-- The published `ghcr.io/nito-tools/docker-nito` image is explicitly built with `NO_WALLET=1`. It is node-only; do not assume wallet RPCs exist.
-- Nito is SHA-256 proof-of-work. The Stratum layer must be tested against Nito's template/consensus behavior, including coinbase construction, extranonce handling, target/difficulty conversion, version/time/nonce fields, and block submission.
-- The existing Nito Umbrel app's RPC credentials are app-scoped. Never publish the RPC port, and never give miners or the web UI unrestricted RPC access.
+## Files
 
-## Proposed component boundaries
+- `Dockerfile.wallet`: adapted from the upstream docker-nito multi-arch source build; removes `NO_WALLET=1` and explicitly enables headless SQLite/Berkeley DB wallet profile. It has **not been built/tested** here.
+- `tests/rpc_mining_probe.py`: requires mining RPC and wallet RPC help/capability checks. It does not create wallets or alter chain state.
 
-1. **Node:** pinned Nito Core image, persistent chain volume, P2P published only.
-2. **Stratum:** a dedicated pool/solo-Stratum service. RPC access only on the private Compose network. Expose a configurable LAN Stratum port; do not expose RPC/API.
-3. **Wallet:** separate wallet-enabled build/service and a wallet UI with authentication. Keep wallet RPC private; no wallet credentials or seed in the Stratum container. Backup/recovery must be explicitly documented and tested before enabling wallet operations.
-4. **Dashboard:** status, miner/worker connections, accepted/rejected shares, hashrate, candidate-block submissions and payout address. No secret material.
+## Planned architecture
 
-## Acceptance gates before publishing an installable app
+1. Node/wallet: pinned Nito Core, private RPC, persistent data. P2P only exposed.
+2. Stratum: LAN-facing SHA-256 Stratum V1 solo server, private RPC to daemon only.
+3. UI: authenticated local dashboard and wallet view. Never pass wallet secrets to the Stratum process.
+4. Solo payout: configured wallet address or payout address. Avoid generating payout secrets in pool code.
 
-- [ ] Build wallet-enabled Nito Core from a pinned, verified source commit for amd64 and arm64; publish immutable image digests.
-- [ ] Confirm RPC capabilities on the image: `getblocktemplate`, `submitblock`, address validation, wallet creation/load, backup and restore.
-- [ ] Regtest integration tests: create template, connect a Stratum client, submit valid/invalid shares, find a block, submit it, and confirm it on-chain.
-- [ ] Test mainnet template parsing at current consensus rules (including v4/Orchard fields) without submitting a block.
-- [ ] Test wallet recovery and encrypted backups; document a recovery drill.
-- [ ] LAN-only defaults, strong generated secrets, no exposed RPC, rate limiting, input validation, and clear solo-mining economics warning.
-- [ ] Multi-arch image build and Umbrel install/upgrade/uninstall test.
+## Release gates
 
-## Compatibility probe
+- [ ] Build this wallet Dockerfile for amd64 and arm64, inspect binaries and verify RPC help capabilities.
+- [ ] Regtest wallet create/load, receive, send, backup and restore, with recovery drill.
+- [ ] Stratum integration test on regtest: job conversion, valid/invalid shares, extranonce, coinbase/witness commitments, full block submit and confirmation.
+- [ ] Mainnet v4 template fixture tests including Orchard transactions (preserve complete raw `data`).
+- [ ] Secure auth, CSRF protections, no secret logs, rate limits, LAN-only defaults.
+- [ ] Umbrel app lifecycle and multi-arch image validation.
 
-Run `tests/rpc_mining_probe.py` against a node with RPC enabled. It checks the basic mining-template contract only; it is not a Stratum implementation or proof that block submission is safe.
+Never expose RPC to miners, WAN, or unauthenticated web clients. Solo mining has extremely low expected payout frequency for small hashrates; dashboard must show probability/expected time transparently.
