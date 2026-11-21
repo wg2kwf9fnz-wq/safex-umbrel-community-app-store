@@ -17,6 +17,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Syntax-check adapter and tests
+        working-directory: nito-solo-miner/public-pool-adapter
+        run: |
+          node --check nito-template-adapter.js
+          node --check test/nito-template-adapter.test.js
       - name: Run prototype tests
         working-directory: nito-solo-miner/public-pool-adapter
         run: node --test test/nito-template-adapter.test.js
