@@ -470,6 +470,16 @@ async function processAndSubmitNitoShare(job, share, rpcAdapter) {
   return Object.freeze({ ...processed, submitResult });
 }
 
+/** Decode standard compact nBits into a 256-bit target, rejecting negative/zero/overflow encodings. */
+function compactBitsToTarget(bits) {
+  if (typeof bits !== 'string' || !/^[0-9a-fA-F]{8}$/.test(bits)) throw new Error('bits must be 4-byte hex');
+  const compact = parseInt(bits, 16), exponent = compact >>> 24, mantissa = compact & 0x007fffff;
+  if ((compact & 0x00800000) !== 0 || mantissa === 0) throw new Error('compact target must be positive');
+  let target = exponent <= 3 ? BigInt(mantissa) >> BigInt(8 * (3 - exponent)) : BigInt(mantissa) << BigInt(8 * (exponent - 3));
+  if (target <= 0n || target > MAX_UINT256) throw new RangeError('compact target overflow');
+  return target.toString(16).padStart(64, '0');
+}
+
 const NITO_DIFF1_TARGET = BigInt('0x00000000ffff0000000000000000000000000000000000000000000000000000');
 const MAX_UINT256 = (1n << 256n) - 1n;
 
@@ -657,4 +667,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, compactBitsToTarget, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
