@@ -4,6 +4,7 @@
 Usage:
   NITO_RPC_USER=... NITO_RPC_PASSWORD=... python3 tests/rpc_mining_probe.py
 Optional: NITO_RPC_URL=http://127.0.0.1:8825
+Optional: NITO_GBT_FIXTURE_PATH=./nito-v4-GBT-fixture.json (writes raw template with mode 0600)
 """
 import json
 import os
@@ -11,6 +12,7 @@ import sys
 import urllib.request
 import urllib.error
 import base64
+import pathlib
 
 URL = os.getenv("NITO_RPC_URL", "http://127.0.0.1:8825")
 USER = os.environ.get("NITO_RPC_USER")
@@ -48,4 +50,16 @@ print("GBT OK:")
 print(f"  height={template['height']} previous={template['previousblockhash']}")
 print(f"  bits={template['bits']} target={template['target']} coinbasevalue={template['coinbasevalue']}")
 print(f"  tx_count={len(template['transactions'])} rules={template.get('rules', [])}")
+
+fixture_path = os.getenv('NITO_GBT_FIXTURE_PATH')
+if fixture_path:
+    path = pathlib.Path(fixture_path)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    if hasattr(os, 'O_NOFOLLOW'):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(path, flags, 0o600)
+    with os.fdopen(fd, 'w') as fixture:
+        json.dump(template, fixture, indent=2)
+    os.chmod(path, 0o600)
+    print(f"Saved raw GBT fixture to {path} (0600; contains raw transaction data)")
 print("Probe passed. This does not test Stratum job conversion, share validation, or submitblock.")
