@@ -16,7 +16,7 @@ function normalizeNitoTemplate(raw) {
     throw new TypeError('GBT response must be an object');
   }
 
-  const required = ['previousblockhash', 'height', 'version', 'bits', 'curtime', 'mintime', 'coinbasevalue', 'transactions'];
+  const required = ['previousblockhash', 'height', 'version', 'bits', 'target', 'curtime', 'mintime', 'coinbasevalue', 'transactions'];
   for (const key of required) {
     if (!(key in raw)) throw new Error(`GBT missing required field: ${key}`);
   }
@@ -24,6 +24,7 @@ function normalizeNitoTemplate(raw) {
   if (!Number.isSafeInteger(raw.height) || raw.height < 0) throw new Error('height must be a non-negative integer');
   if (!Number.isSafeInteger(raw.version)) throw new Error('version must be an integer');
   if (typeof raw.bits !== 'string' || !/^[0-9a-fA-F]{8}$/.test(raw.bits)) throw new Error('bits must be 4-byte hex');
+  if (!HEX_32.test(raw.target)) throw new Error('target must be 32-byte hex');
   for (const key of ['curtime', 'mintime', 'coinbasevalue']) {
     if (!Number.isSafeInteger(raw[key]) || raw[key] < 0) throw new Error(`${key} must be a non-negative integer`);
   }
