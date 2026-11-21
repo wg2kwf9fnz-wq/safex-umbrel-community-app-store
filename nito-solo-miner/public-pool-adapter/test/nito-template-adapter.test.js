@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, compactBitsToTarget, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -351,6 +351,14 @@ test('network block is submitted even when the pool share target is not met', as
   assert.equal(result.meetsNetworkTarget, true);
   assert.equal(result.submitResult, 'accepted');
   assert.equal(calls, 1);
+});
+
+test('compact nBits decoder yields Nito v4 genesis diff-one target', () => {
+  const diff1 = '00000000ffff0000000000000000000000000000000000000000000000000000';
+  assert.equal(compactBitsToTarget('1d00ffff'), diff1);
+  assert.equal(compactBitsToTarget('0300ffff'), '0000000000000000000000000000000000000000000000000000000000ffff');
+  assert.throws(() => compactBitsToTarget('1d80ffff'), /positive/);
+  assert.throws(() => compactBitsToTarget('00000000'), /positive/);
 });
 
 test('difficulty converts to share targets with Nito diff-one baseline', () => {
