@@ -239,7 +239,7 @@ function prepareStratumTemplate(template) {
  * ScriptSig bytes are supplied by the caller (including height/extranonce).
  * This is serialization only; it does not validate consensus or script rules.
  */
-function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffer.alloc(32), version = 2, lockTime = 0, maxValue }) {
+function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffer.alloc(32), version = 2, lockTime = 0, maxValue, extranonceOffsetBytes, extranonceSizeBytes }) {
   if (typeof scriptSigHex !== 'string' || !/^(?:[0-9a-fA-F]{2})+$/.test(scriptSigHex)) throw new Error('coinbase scriptSig must be non-empty hex');
   const scriptSig = Buffer.from(scriptSigHex, 'hex');
   if (scriptSig.length < 2 || scriptSig.length > 100) throw new Error('coinbase scriptSig must be 2..100 bytes');
@@ -247,6 +247,9 @@ function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffe
   if (!Buffer.isBuffer(witnessReservedValue) || witnessReservedValue.length !== 32) throw new Error('witness reserved value must be 32 bytes');
   if (!Number.isInteger(version) || version < -0x80000000 || version > 0x7fffffff) throw new Error('coinbase version must be int32');
   if (!Number.isSafeInteger(lockTime) || lockTime < 0 || lockTime > 0xffffffff) throw new Error('coinbase lockTime must be uint32');
+  if (maxValue !== undefined && (!Number.isSafeInteger(maxValue) || maxValue < 0)) throw new Error('maxValue must be a non-negative safe integer');
+  if ((extranonceOffsetBytes === undefined) !== (extranonceSizeBytes === undefined)) throw new Error('extranonce offset and size must be provided together');
+  if (extranonceOffsetBytes !== undefined && (!Number.isSafeInteger(extranonceOffsetBytes) || extranonceOffsetBytes < 0 || !Number.isSafeInteger(extranonceSizeBytes) || extranonceSizeBytes <= 0 || extranonceOffsetBytes + extranonceSizeBytes > scriptSig.length)) throw new Error('extranonce placeholder must fit inside scriptSig');
   let total = 0n;
   const serializedOutputs = outputs.map((output, i) => {
     if (!output || !Number.isSafeInteger(output.value) || output.value < 0) throw new Error(`coinbase output ${i} value must be non-negative safe integer`);
@@ -269,12 +272,34 @@ function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffe
   const witnessMarkerFlag = Buffer.from('0001', 'hex');
   const witnessStack = Buffer.concat([compactSize(1), compactSize(32), witnessReservedValue]);
   const full = Buffer.concat([versionBytes, witnessMarkerFlag, compactSize(1), input, outputBytes, witnessStack, lockBytes]);
-  return Object.freeze({
+  const result = {
     rawHex: full.toString('hex'),
     strippedHex: stripped.toString('hex'),
     txid: Buffer.from(hash256(stripped)).reverse().toString('hex'),
     totalValue: Number(total)
-  });
+  };
+  if (extranonceOffsetBytes !== undefined) {
+    const rawScriptOffset = 4 + 2 + compactSize(1).length + 32 + 4 + compactSize(scriptSig.length).length;
+    const strippedScriptOffset = 4 + compactSize(1).length + 32 + 4 + compactSize(scriptSig.length).length;
+    const rawSplit = rawScriptOffset + extranonceOffsetBytes;
+    const strippedSplit = strippedScriptOffset + extranonceOffsetBytes;
+    result.coinbasePart1 = full.subarray(0, rawSplit).toString('hex');
+    result.coinbasePart2 = full.subarray(rawSplit + extranonceSizeBytes).toString('hex');
+    result.coinbaseStrippedPart1 = stripped.subarray(0, strippedSplit).toString('hex');
+    result.coinbaseStrippedPart2 = stripped.subarray(strippedSplit + extranonceSizeBytes).toString('hex');
+  }
+  return Object.freeze(result);
+}
+
+/** Reassemble split coinbase parts with a miner extranonce and calculate its txid. */
+function assembleCoinbaseFromParts({ coinbasePart1, coinbasePart2, coinbaseStrippedPart1, coinbaseStrippedPart2, extranonceHex }) {
+  if (![coinbasePart1, coinbasePart2, coinbaseStrippedPart1, coinbaseStrippedPart2].every(s => typeof s === 'string' && /^[0-9a-fA-F]*$/.test(s))) {
+    throw new Error('coinbase parts must be hex strings');
+  }
+  if (typeof extranonceHex !== 'string' || !/^(?:[0-9a-fA-F]{2})+$/.test(extranonceHex)) throw new Error('extranonce must be non-empty hex');
+  const full = Buffer.concat([Buffer.from(coinbasePart1, 'hex'), Buffer.from(extranonceHex, 'hex'), Buffer.from(coinbasePart2, 'hex')]);
+  const stripped = Buffer.concat([Buffer.from(coinbaseStrippedPart1, 'hex'), Buffer.from(extranonceHex, 'hex'), Buffer.from(coinbaseStrippedPart2, 'hex')]);
+  return Object.freeze({ rawHex: full.toString('hex'), strippedHex: stripped.toString('hex'), txid: Buffer.from(hash256(stripped)).reverse().toString('hex') });
 }
 
 /** Serialize the standard 80-byte Nito/Bitcoin-style proof-of-work header. */
@@ -323,4 +348,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
