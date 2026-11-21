@@ -138,12 +138,18 @@ test('coinbase serializer splits extranonce and reassembles raw and stripped tra
     coinbasePart2: base.coinbasePart2,
     coinbaseStrippedPart1: base.coinbaseStrippedPart1,
     coinbaseStrippedPart2: base.coinbaseStrippedPart2,
+    extranonceSizeBytes: base.extranonceSizeBytes,
     extranonceHex: 'ccdd'
   });
   const expected = serializeCoinbase({ scriptSigHex: '0101ccdd0202', outputs });
   assert.equal(assembled.rawHex, expected.rawHex);
   assert.equal(assembled.strippedHex, expected.strippedHex);
   assert.equal(assembled.txid, expected.txid);
+  assert.throws(() => assembleCoinbaseFromParts({
+    coinbasePart1: base.coinbasePart1, coinbasePart2: base.coinbasePart2,
+    coinbaseStrippedPart1: base.coinbaseStrippedPart1, coinbaseStrippedPart2: base.coinbaseStrippedPart2,
+    extranonceSizeBytes: base.extranonceSizeBytes, extranonceHex: 'cc'
+  }), /length does not match/);
 });
 
 test('coinbase splitter rejects an out-of-range extranonce placeholder', () => {
