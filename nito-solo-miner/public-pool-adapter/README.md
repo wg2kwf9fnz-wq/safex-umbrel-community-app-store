@@ -10,7 +10,7 @@ node --test test/nito-template-adapter.test.js
 
 ## Implemented helpers
 
-- GBT envelope/rules, required network target, and optional transaction fee/sigops/weight metadata validation.
+- GBT envelope/rules, required network target, and optional transaction fee/sigops/weight metadata validation, and strict GBT witness-commitment script validation.
 - Opaque raw transaction byte preservation; dependency index/order and closure checks.
 - Txid Merkle root, coinbase Merkle branch generation.
 - Witness Merkle root (null coinbase leaf), commitment digest and commitment OP_RETURN script helper.
