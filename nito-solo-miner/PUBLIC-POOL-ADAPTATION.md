@@ -43,3 +43,16 @@ The adapter must pass fixture tests before Public Pool's Stratum server can be e
 ## Umbrel packaging notes
 
 Use the official Public Pool Umbrel app as a packaging reference (server + UI + proxy + persistent database). Do not copy its Bitcoin app dependencies or Bitcoin RPC wiring unchanged. Keep RPC credentials server-side and expose only the Stratum listener and authenticated Umbrel-proxied UI/API.
+
+## Deeper code-path inspection (upstream pinned commit)
+
+### Template/job generation
+`src/services/stratum-v1-jobs.service.ts` currently parses every template transaction using `bitcoinjs.Transaction.fromHex(t.data)`, then derives txid leaves from parsed transactions and computes the witness root from the parsed transaction set. This is a blocker for Nito's requirement to keep Orchard-bearing transaction bytes opaque. Replace this path with a chain adapter that retains raw transaction hex and uses template `txid` / witness-hash metadata for commitments; never serialize template transactions back from a parser.
+
+### Coinbase / job assembly
+`src/models/MiningJob.ts` constructs a Bitcoin-style coinbase, inserts the extranonce into its input script, and builds the candidate Merkle root from the coinbase txid plus precomputed branches. The candidate block reconstruction currently copies parsed transaction objects, replaces the coinbase, and updates the Merkle root. For Nito, retain this general Stratum mechanism only if its coinbase format and commitment logic are verified; full candidate serialization must concatenate the serialized coinbase and original template transaction bytes.
+
+### Share validation / submission
+`src/models/StratumV1Client.ts` computes a header double-SHA256 hash for share difficulty, and for a network-difficulty candidate calls `copyAndUpdateBlock`, serializes via `bitcoinjs.Block.toHex(false)`, then calls RPC `submitblock`. Nito docs say SHA-256 mining/header compatibility remains unchanged, but block serialization must be adapted to preserve opaque transaction bytes. This is a likely minimal seam for block-candidate submission.
+
+These findings narrow the first integration patch to template parsing/job construction and candidate-block serialization, but coinbase and witness commitment remain consensus-critical and must be tested before connecting miners.
