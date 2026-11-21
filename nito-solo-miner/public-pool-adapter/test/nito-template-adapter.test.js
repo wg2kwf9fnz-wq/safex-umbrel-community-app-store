@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -416,6 +416,26 @@ test('bridge forwards valid shares and submits only network-target blocks', asyn
   assert.equal(result.submitResult, 'accepted');
   assert.equal(submissions.length, 1);
   assert.ok(submissions[0].blockHex);
+});
+
+test('JSON-RPC client sends Basic auth and validates response id/result', async () => {
+  let request;
+  const callRpc = createJsonRpcCall({ url: 'http://nito:8232', username: 'user', password: 'secret', fetchImpl: async (url, options) => { request = { url, options }; return { ok: true, json: async () => ({ jsonrpc: '1.0', id: 1, result: { blocks: 7 } }) }; } });
+  const result = await callRpc('getmininginfo', []);
+  assert.deepEqual(result, { blocks: 7 });
+  assert.equal(request.url, 'http://nito:8232');
+  assert.equal(request.options.headers.authorization, 'Basic ' + Buffer.from('user:secret').toString('base64'));
+  assert.deepEqual(JSON.parse(request.options.body), { jsonrpc: '1.0', id: 1, method: 'getmininginfo', params: [] });
+});
+
+test('JSON-RPC client rejects HTTP, mismatched id and RPC errors', async () => {
+  assert.throws(() => createJsonRpcCall({ url: 'ftp://node', username: 'u', password: 'p' }), /HTTP/);
+  const httpFail = createJsonRpcCall({ url: 'http://node', username: 'u', password: 'p', fetchImpl: async () => ({ ok: false, status: 401 }) });
+  await assert.rejects(httpFail('getmininginfo'), /HTTP request failed/);
+  const mismatch = createJsonRpcCall({ url: 'http://node', username: 'u', password: 'p', fetchImpl: async () => ({ ok: true, json: async () => ({ id: 2, result: 1 }) }) });
+  await assert.rejects(mismatch('getmininginfo'), /id mismatch/);
+  const rpcError = createJsonRpcCall({ url: 'http://node', username: 'u', password: 'p', fetchImpl: async () => ({ ok: true, json: async () => ({ id: 1, error: { code: -1, message: 'denied' } }) }) });
+  await assert.rejects(rpcError('getmininginfo'), /denied/);
 });
 
 test('injected Nito RPC adapter requests and normalizes a GBT', async () => {
