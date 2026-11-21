@@ -1,6 +1,7 @@
 name: Nito adapter prototype tests
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - nito-stratum-wallet-prototype
