@@ -1,21 +1,28 @@
-# Nito template adapter prototype
+# Nito template / Stratum adapter prototype
 
-This is an isolated, dependency-free prototype of the Nito v4 template boundary for the Public Pool fork. It is **not yet wired into upstream Public Pool** and does not create coinbase transactions or insert the computed witness commitment into coinbase, validate shares, validate consensus, or submit blocks.
+This isolated, dependency-free prototype is **not yet wired into Public Pool's server**. It does not validate shares, consensus, or Nito v4 acceptance.
 
-Run tests with Node.js 22+:
+Run under Node.js 22+:
 
 ```sh
 node --test test/nito-template-adapter.test.js
 ```
 
-Scope implemented:
-- Validate a minimal GBT envelope and transaction metadata, including rules and duplicate dependency rejection.
-- Keep transaction `data` opaque and byte-for-byte represented as the original hex string.
-- Validate 1-based dependency indexes and require dependencies precede dependents; selection enforces dependency closure.
-- Provide txid Merkle-root helper, Stratum coinbase branch generation, witness-root/commitment digest and OP_RETURN-script helpers using GBT hashes and a null coinbase leaf.
-- Prepare Stratum template inputs (time floor, previous-hash internal order, raw transactions and coinbase Merkle branches) and format the nine-field `mining.notify` payload including Stratum previous-hash word order.
-- Serialize a coinbase transaction with one 32-byte witness-reserved value, calculate its stripped txid, enforce basic script/value bounds, and split/reassemble extranonce fields (serialization only).
-- Serialize standard 80-byte mining headers and double-SHA256 header hashes.
-- Encode CompactSize counts and serialize a header + coinbase + untouched raw template transaction bytes as a candidate block envelope.
+## Implemented helpers
 
-Before integration, compare field/rule requirements against the exact Nito v4 daemon and add fixtures from regtest. The current test fixtures are synthetic, not captured GBTs. The earlier 11-test version passed a Node 22 scratch-copy run. GitHub Actions passed 17 tests at commit `7367220`; the latest 29-test suite is awaiting CI. The repository could not be cloned here due to network DNS restrictions, so this remains scratch-copy verification rather than a checkout-based run. GitHub Actions passed 21 tests at commit `64d68db`; the latest 29-test suite (including Stratum notify formatting) is awaiting CI.
+- GBT envelope/rules and transaction metadata validation.
+- Opaque raw transaction byte preservation; dependency index/order and closure checks.
+- Txid Merkle root, coinbase Merkle branch generation.
+- Witness Merkle root (null coinbase leaf), commitment digest and commitment OP_RETURN script helper.
+- Coinbase serialization with one 32-byte witness reserved value, stripped txid, output/reward bounds, extranonce split and reassembly.
+- Stratum template preparation and nine-field `mining.notify` formatter (previous-hash word order, time floor, branch).
+- Standard 80-byte header serializer and double-SHA256 hash.
+- Candidate block assembly from a share nonce/time/extranonce while concatenating untouched template transaction bytes.
+
+These are serialization and fixture-level helpers, not a complete chain adapter. GBT fixtures are synthetic. The inspected Nito Core v3.0.0 source supports standard header/txid/witness semantics, but current v4 must be checked against captured GBT and regtest.
+
+## Verification
+
+GitHub Actions run #64 passed 21 tests at commit `64d68db`. The suite now has **31 committed tests**, including candidate block assembly; latest CI result is not yet confirmed.
+
+No coinbase-height rules, payout-address validation, share difficulty/target validation, version rolling, timestamp policy, block consensus, `submitblock`, or live mining is implemented/verified.
