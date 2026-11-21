@@ -16,4 +16,4 @@ Scope implemented:
 - Provide txid Merkle-root helper in header/internal byte order (not witness root).
 - Encode CompactSize counts and serialize an 80-byte header + coinbase + untouched raw template transaction bytes as a candidate block envelope.
 
-Before integration, compare field/rule requirements against the exact Nito v4 daemon and add fixtures from regtest. The current test fixtures are synthetic, not captured GBTs. Seven tests passed against a scratch copy of the prototype; the branch could not be cloned here due to network DNS restrictions.
+Before integration, compare field/rule requirements against the exact Nito v4 daemon and add fixtures from regtest. The current test fixtures are synthetic, not captured GBTs. Ten tests passed against a scratch copy of the prototype (the updated test file was also committed to this branch). The repository could not be cloned here due to network DNS restrictions, so this remains scratch-copy verification rather than a checkout-based run.
