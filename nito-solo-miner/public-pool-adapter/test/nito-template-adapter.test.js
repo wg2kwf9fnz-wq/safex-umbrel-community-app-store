@@ -272,6 +272,13 @@ test('network candidate share submits via RPC adapter and non-candidate is not s
   assert.equal(submitted.length, 1);
 });
 
+test('Stratum job requires a valid share target', () => {
+  const template = normalizeNitoTemplate(base);
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  assert.throws(() => createNitoStratumJob({ template, jobId: 'no-share-target', coinbaseParts: parts }), /shareTarget/);
+  assert.throws(() => createNitoStratumJob({ template, jobId: 'bad-share-target', coinbaseParts: parts, shareTarget: 'xyz' }), /shareTarget/);
+});
+
 test('target comparison interprets header hash in display byte order', () => {
   assert.equal(hashMeetsTarget(Buffer.alloc(32), '00'.repeat(32)), true);
   assert.equal(hashMeetsTarget(Buffer.alloc(32, 0xff), '00'.repeat(32)), false);
