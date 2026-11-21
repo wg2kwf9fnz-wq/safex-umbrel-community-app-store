@@ -10,19 +10,21 @@ node --test test/nito-template-adapter.test.js
 
 ## Implemented helpers
 
-- GBT envelope/rules, required network target, and optional transaction fee/sigops/weight metadata validation, and strict GBT witness-commitment script validation.
+- GBT envelope/rules, mandatory target, optional mining metadata, and coinbaseaux hex validation.
 - Opaque raw transaction byte preservation; dependency index/order and closure checks.
 - Txid Merkle root, coinbase Merkle branch generation.
-- Witness Merkle root (null coinbase leaf), commitment digest and commitment OP_RETURN script helper.
-- Coinbase serialization with one 32-byte witness reserved value, stripped txid, output/reward bounds, extranonce split and reassembly.
+- Witness Merkle root (null coinbase leaf), commitment digest/script, and payout-output builder with reward cap.
+- Coinbase serialization with witness reserved value, stripped txid, extranonce split/reassembly, and BIP34-style height script (minimal OP_1..OP_16 encodings).
 - Stratum template preparation and nine-field `mining.notify` formatter (previous-hash word order, time floor, branch).
+- Compact `nBits` target decoding and difficulty-derived share target using Nito v4 mainnet genesis `1d00ffff` as diff-1 baseline.
 - Standard 80-byte header serializer and double-SHA256 hash.
-- Candidate block assembly from a share nonce/time/extranonce while concatenating untouched template transaction bytes.
+- Candidate block assembly from share nonce/time/extranonce while concatenating untouched template transaction bytes.
+- Injectable JSON-RPC adapter, private HTTP JSON-RPC client factory, and reusable bridge with bounded/TTL job cache and template-work invalidation.
 
-These are serialization and fixture-level helpers, not a complete chain adapter. GBT fixtures are synthetic. The inspected Nito Core v3.0.0 source supports standard header/txid/witness semantics, but current v4 must be checked against captured GBT and regtest.
+These are serialization and helper-level components, not a complete chain adapter. GBT fixtures are synthetic; source-level Nito v4.0 checks have been performed, but no captured daemon template or regtest acceptance has been verified.
 
 ## Verification
 
-GitHub Actions run #516 passed **59 tests** at commit `4a1e4fe7`. The suite has since gained two tests for optional transaction numeric metadata and GBT `mintime`; latest CI is pending. Regression coverage also verifies network-block submission even when the pool share target is stricter.
+GitHub Actions run #516 passed **59 tests** at commit `4a1e4fe7`. The suite includes regression tests for optional GBT metadata, coinbase-height encoding, witness commitment cross-checks, share-target/difficulty conversion, JSON-RPC transport, bridge job lifecycle, and guarded submission.
 
-Coinbase-height consensus rules, payout-address validation, pool-configured share difficulty integration, version rolling, upper/future timestamp policy, block consensus, real `submitblock`, and live mining remain unimplemented/unverified. The isolated helper only evaluates an explicitly supplied share target and enforces the GBT mintime lower bound.
+Pool-configured session difficulty integration, timestamp policy, version rolling, payout-address/script validation, Nito consensus, real `submitblock`, live mining, and Umbrel packaging remain unimplemented/unverified. The HTTP JSON-RPC client and adapter have only been tested with injected fake transports.
