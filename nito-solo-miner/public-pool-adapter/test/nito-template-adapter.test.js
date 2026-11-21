@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -81,6 +81,20 @@ test('empty transaction template returns an empty coinbase branch', () => {
 test('CompactSize encodes the transaction count boundary', () => {
   assert.equal(compactSize(252).toString('hex'), 'fc');
   assert.equal(compactSize(253).toString('hex'), 'fdfd00');
+});
+
+test('prepared Stratum template carries raw transactions and Merkle branches', () => {
+  const prepared = prepareStratumTemplate(normalizeNitoTemplate(base));
+  assert.equal(prepared.height, base.height);
+  assert.equal(prepared.timestamp, base.curtime);
+  assert.deepEqual(prepared.previousHashInternal, Buffer.from(base.previousblockhash, 'hex').reverse());
+  assert.deepEqual(prepared.transactions.map(tx => tx.data), ['deadbeef', 'cafe00']);
+  assert.deepEqual(prepared.merkleBranch, coinbaseMerkleBranchInternal(base.transactions.map(tx => tx.txid)));
+});
+
+test('prepared Stratum template uses mintime if curtime is earlier', () => {
+  const normalized = normalizeNitoTemplate({ ...base, curtime: base.mintime - 5 });
+  assert.equal(prepareStratumTemplate(normalized).timestamp, base.mintime);
 });
 
 test('header serializer writes fields in standard 80-byte layout', () => {
