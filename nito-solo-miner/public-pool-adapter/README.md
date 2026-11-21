@@ -9,11 +9,11 @@ node --test test/nito-template-adapter.test.js
 ```
 
 Scope implemented:
-- Validate a minimal GBT envelope and transaction metadata.
+- Validate a minimal GBT envelope and transaction metadata, including rules and duplicate dependency rejection.
 - Keep transaction `data` opaque and byte-for-byte represented as the original hex string.
-- Validate 1-based dependency indexes and require dependencies precede dependents.
-- Select transactions only when dependency closure is satisfied.
-- Provide txid Merkle-root helper in header/internal byte order (not witness root).
-- Encode CompactSize counts and serialize an 80-byte header + coinbase + untouched raw template transaction bytes as a candidate block envelope.
+- Validate 1-based dependency indexes and require dependencies precede dependents; selection enforces dependency closure.
+- Provide txid Merkle-root helper and Stratum coinbase branch generation in internal byte order (not witness root).
+- Serialize standard 80-byte mining headers and double-SHA256 header hashes.
+- Encode CompactSize counts and serialize a header + coinbase + untouched raw template transaction bytes as a candidate block envelope.
 
-Before integration, compare field/rule requirements against the exact Nito v4 daemon and add fixtures from regtest. The current test fixtures are synthetic, not captured GBTs. Seventeen Node built-in tests passed against a scratch copy of the prototype, including Merkle-root byte-order and odd-leaf tests. The repository could not be cloned here due to network DNS restrictions, so this remains scratch-copy verification rather than a checkout-based run. The latest GitHub Actions result has not yet been independently confirmed.
+Before integration, compare field/rule requirements against the exact Nito v4 daemon and add fixtures from regtest. The current test fixtures are synthetic, not captured GBTs. Seventeen Node built-in tests passed against a scratch copy of the prototype, including Merkle-root byte-order and odd-leaf tests. The repository could not be cloned here due to network DNS restrictions, so this remains scratch-copy verification rather than a checkout-based run. The latest GitHub Actions result for this expanded 17-test suite has not yet been independently confirmed.
