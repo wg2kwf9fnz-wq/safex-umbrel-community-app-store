@@ -45,6 +45,10 @@ This confirms the inspected v3.0.0 behavior only. The user's target Nito v4 must
 
 GitHub Actions run #301 passed **48 tests** at commit `92ec75ff`, including optional GBT metadata validation, coinbase-height script helper, reusable bridge lifecycle, share-target checks, and guarded submission. Fixtures are synthetic; no live/regtest mining or block submission has been performed.
 
+## Integration roadmap
+
+See [PUBLIC-POOL-INTEGRATION-PLAN.md](PUBLIC-POOL-INTEGRATION-PLAN.md) for exact pinned upstream file seams and replacement requirements. It is a design note only; no upstream patch has been applied.
+
 ## Required integration/release validation
 
 1. Capture Nito v4 regtest GBT fixtures, including Orchard transactions; verify raw bytes and metadata.
