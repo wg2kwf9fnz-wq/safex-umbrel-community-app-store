@@ -500,7 +500,7 @@ class NitoStratumBridge {
     for (const [jobId, entry] of this.jobs) if (entry.createdAt <= cutoff) this.jobs.delete(jobId);
   }
   async refreshTemplate() {
-    const nextTemplate = await this.rpc.getBlockTemplate();
+    const nextTemplate = normalizeNitoTemplate(await this.rpc.getBlockTemplate());
     const signature = [nextTemplate.previousblockhash, nextTemplate.height, nextTemplate.version, nextTemplate.bits, nextTemplate.target, nextTemplate.curtime, nextTemplate.coinbasevalue, ...nextTemplate.transactions.map(tx => tx.txid + ':' + (tx.hash || ''))].join('|');
     if (this.workSignature !== undefined && signature !== this.workSignature) this.jobs.clear();
     this.workSignature = signature;
