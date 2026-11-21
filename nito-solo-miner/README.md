@@ -30,7 +30,7 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 ## Verification status
 
 - GitHub Actions run #64 passed 21 tests at commit `64d68db`.
-- GitHub Actions run #121 passed all **31 tests** at latest head `4504b479`.
+- GitHub Actions run #136 passed all **33 tests** at commit `76663cb9`.
 - No Nito v4 captured GBT fixture, Nito regtest `submitblock`, live mining, share-difficulty validation, or consensus validation has been performed.
 - The adapter is still not integrated into Public Pool's actual server.
 
