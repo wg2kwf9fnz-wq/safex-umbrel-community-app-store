@@ -23,6 +23,6 @@ These are serialization and fixture-level helpers, not a complete chain adapter.
 
 ## Verification
 
-GitHub Actions run #402 passed **52 tests** at commit `99a65841`, including GBT optional metadata validation, coinbase height script helper, payout/witness-commitment output builder, reusable bridge lifecycle, share-target checks, guarded submission, TTL expiry, and work-change invalidation.
+GitHub Actions run #402 passed **52 tests** at commit `99a65841`. The suite has since gained two tests for optional transaction numeric metadata and GBT `mintime`; latest CI is pending. Regression coverage also verifies network-block submission even when the pool share target is stricter.
 
-No coinbase-height rules, payout-address validation, share difficulty/target validation, version rolling, timestamp lower-bound enforcement (upper/future-time policy still pending), block consensus, `submitblock`, or live mining is implemented/verified.
+Coinbase-height consensus rules, payout-address validation, pool-configured share difficulty integration, version rolling, upper/future timestamp policy, block consensus, real `submitblock`, and live mining remain unimplemented/unverified. The isolated helper only evaluates an explicitly supplied share target and enforces the GBT mintime lower bound.
