@@ -311,7 +311,7 @@ test('bridge requires template before job and bounds job cache', async () => {
   assert.equal(bridge.jobs.size, 2);
   assert.equal(bridge.jobs.has('a'), false);
   assert.equal(bridge.jobs.has('c'), true);
-  assert.throws(() => bridge.submitShare('a', {}), /unknown or expired/);
+  await assert.rejects(bridge.submitShare('a', {}), /unknown or expired/);
 });
 
 test('bridge forwards valid shares and submits only network-target blocks', async () => {
