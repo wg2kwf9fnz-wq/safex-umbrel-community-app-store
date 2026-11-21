@@ -38,3 +38,11 @@ Official compatibility and wallet documentation:
 - [ ] Umbrel app lifecycle and multi-arch image validation.
 
 Never expose RPC to miners, WAN, or unauthenticated web clients. Solo mining has extremely low expected payout frequency for small hashrates; dashboard must show probability/expected time transparently.
+
+## Stratum implementation candidate
+
+CKPool is a strong candidate to adapt rather than write a Stratum server from scratch: it supports solo mode, Bitcoin-style RPC `getblocktemplate`, full-block submission, and Stratum V1. It is GPL-3.0, so a fork/adaptation must retain its license and notices and comply with source-distribution requirements.
+
+**Not yet approved for Nito:** CKPool's own solo guide currently targets Bitcoin Core 32.x. Its coinbase, transaction handling, witness commitment and block assembly must be audited and tested against Nito v4's documented pool contract, including Orchard-containing templates. Do not ship it merely because it can connect to Nito RPC.
+
+Candidate source: [ckolivas/ckpool](https://github.com/ckolivas/ckpool). The next prototype should pin a commit and build CKPool in a separate container, then use regtest fixture tests to demonstrate valid block assembly and submission before exposing Stratum port 3333.
