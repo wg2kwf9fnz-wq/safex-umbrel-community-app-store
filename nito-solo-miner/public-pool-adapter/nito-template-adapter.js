@@ -37,7 +37,7 @@ function normalizeNitoTemplate(raw) {
   }
   if (raw.coinbaseaux !== undefined && (!raw.coinbaseaux || typeof raw.coinbaseaux !== 'object' || Array.isArray(raw.coinbaseaux))) throw new Error('coinbaseaux must be an object');
   if (raw.default_witness_commitment !== undefined && (typeof raw.default_witness_commitment !== 'string' || !/^(?:[0-9a-fA-F]{2})*$/.test(raw.default_witness_commitment))) throw new Error('default_witness_commitment must be hex');
-  if (raw.noncerange !== undefined && (typeof raw.noncerange !== 'string' || !/^[0-9a-fA-F]{8}$/.test(raw.noncerange))) throw new Error('noncerange must be 4-byte hex');
+  if (raw.noncerange !== undefined && (typeof raw.noncerange !== 'string' || !/^[0-9a-fA-F]{16}$/.test(raw.noncerange))) throw new Error('noncerange must be 8-byte hex');
   if (raw.vbrequired !== undefined && (!Number.isSafeInteger(raw.vbrequired) || raw.vbrequired < 0)) throw new Error('vbrequired must be a non-negative integer');
   for (const key of ['sigoplimit', 'sizelimit', 'weightlimit']) if (raw[key] !== undefined && (!Number.isSafeInteger(raw[key]) || raw[key] < 0)) throw new Error(`${key} must be a non-negative integer`);
 
