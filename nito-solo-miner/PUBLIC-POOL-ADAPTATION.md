@@ -43,7 +43,7 @@ This confirms the inspected v3.0.0 behavior only. The user's target Nito v4 must
 
 ## Test and CI checkpoint
 
-GitHub Actions run #64 passed **21 tests** at commit `64d68db`. The suite has since expanded to **48 committed tests**, including coinbase serialization, extranonce splitting/reassembly, Stratum notify formatting and candidate block assembly. CI for the latest commit is not yet confirmed. The fixtures are synthetic and no live/regtest mining or block submission has been done.
+GitHub Actions run #301 passed **48 tests** at commit `92ec75ff`, including optional GBT metadata validation, coinbase-height script helper, reusable bridge lifecycle, share-target checks, and guarded submission. Fixtures are synthetic; no live/regtest mining or block submission has been performed.
 
 ## Required integration/release validation
 
