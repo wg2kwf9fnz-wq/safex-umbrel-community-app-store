@@ -462,7 +462,8 @@ function processNitoShare(job, share) {
 async function processAndSubmitNitoShare(job, share, rpcAdapter) {
   if (!rpcAdapter || typeof rpcAdapter.submitBlock !== 'function') throw new TypeError('RPC adapter with submitBlock required');
   const processed = processNitoShare(job, share);
-  if (!processed.meetsShareTarget || !processed.meetsNetworkTarget) return Object.freeze({ ...processed, submitResult: null });
+  // A network-valid block must be submitted even if this pool's configured share target is stricter.
+  if (!processed.meetsNetworkTarget) return Object.freeze({ ...processed, submitResult: null });
   const submitResult = await rpcAdapter.submitBlock(processed.candidate);
   return Object.freeze({ ...processed, submitResult });
 }
