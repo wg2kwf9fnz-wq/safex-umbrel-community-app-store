@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -218,6 +218,25 @@ test('header serializer rejects invalid nonce and compact bits', () => {
   const common = { version: 1, previousblockhash: '11'.repeat(32), merkleRootInternal: Buffer.alloc(32), timestamp: 1, bits: '1d00ffff', nonce: 1 };
   assert.throws(() => serializeMiningHeader({ ...common, nonce: -1 }), /uint32/);
   assert.throws(() => serializeMiningHeader({ ...common, bits: 'bad' }), /bits/);
+});
+
+test('Stratum bridge builds job notify and flags network-target candidate', () => {
+  const template = normalizeNitoTemplate({ ...base, target: 'ff'.repeat(32) });
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 100, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  const job = createNitoStratumJob({ template, jobId: 'job-1', coinbaseParts: parts, cleanJobs: true });
+  assert.equal(job.notifyParams[0], 'job-1');
+  const processed = processNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
+  assert.equal(processed.meetsNetworkTarget, true);
+  assert.ok(processed.candidate.blockHex.length > 160);
+});
+
+test('Stratum bridge rejects missing target and flags non-candidate hash', () => {
+  const template = normalizeNitoTemplate({ ...base, target: '00'.repeat(32) });
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 100, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  const job = createNitoStratumJob({ template, jobId: 'job-2', coinbaseParts: parts });
+  const processed = processNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
+  assert.equal(processed.meetsNetworkTarget, false);
+  assert.throws(() => createNitoStratumJob({ template: normalizeNitoTemplate(base), jobId: 'x', coinbaseParts: parts }), /target required/);
 });
 
 test('target comparison interprets header hash in display byte order', () => {
