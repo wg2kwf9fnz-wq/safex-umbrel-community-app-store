@@ -569,7 +569,7 @@ class NitoStratumBridge {
     this.template = nextTemplate;
     return this.template;
   }
-  createJob({ jobId, coinbaseParts, shareTarget, cleanJobs = false }) {
+  createJob({ jobId, coinbaseParts, shareTarget, difficulty, cleanJobs = false }) {
     if (!this.template) throw new Error('refreshTemplate must be called before creating jobs');
     this.purgeExpiredJobs();
     const job = createNitoStratumJob({ template: this.template, jobId, coinbaseParts, shareTarget, difficulty, cleanJobs });
