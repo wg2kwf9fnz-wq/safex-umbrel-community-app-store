@@ -119,6 +119,41 @@ function txidMerkleRootInternal(txids) {
 
 
 /**
+ * Witness Merkle root with the coinbase witness leaf fixed to 32 zero bytes,
+ * as in the BIP141/Nito v3.0.0 source inspected. GBT hash values are display
+ * order; template transaction bytes are never parsed.
+ */
+function witnessMerkleRootInternal(templateWtxids) {
+  if (!Array.isArray(templateWtxids)) throw new TypeError('template wtxids must be an array');
+  const leaves = [Buffer.alloc(32), ...templateWtxids.map(wtxid => {
+    if (!HEX_32.test(wtxid)) throw new Error('invalid template witness hash');
+    return Buffer.from(wtxid, 'hex').reverse();
+  })];
+  return txidMerkleRootInternalFromInternalLeaves(leaves);
+}
+
+function txidMerkleRootInternalFromInternalLeaves(leaves) {
+  if (!Array.isArray(leaves) || leaves.length === 0) throw new Error('Merkle tree requires at least one leaf');
+  let level = leaves.map(leaf => {
+    if (!Buffer.isBuffer(leaf) || leaf.length !== 32) throw new Error('Merkle leaves must be 32-byte Buffers');
+    return Buffer.from(leaf);
+  });
+  while (level.length > 1) {
+    if (level.length % 2 === 1) level.push(Buffer.from(level[level.length - 1]));
+    const next = [];
+    for (let i = 0; i < level.length; i += 2) next.push(hash256(Buffer.concat([level[i], level[i + 1]])));
+    level = next;
+  }
+  return level[0];
+}
+
+/** Witness commitment digest: SHA256d(witness root internal bytes || reserved value). */
+function computeWitnessCommitment(templateWtxids, reservedValue = Buffer.alloc(32)) {
+  if (!Buffer.isBuffer(reservedValue) || reservedValue.length !== 32) throw new Error('witness reserved value must be 32 bytes');
+  return hash256(Buffer.concat([witnessMerkleRootInternal(templateWtxids), reservedValue]));
+}
+
+/**
  * Coinbase Merkle branch for a template transaction list.
  * Input txids are display-order hex. The coinbase is index 0; branches are
  * returned as internal-order hex, matching the Stratum V1 merkle-branch field.
@@ -239,4 +274,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
