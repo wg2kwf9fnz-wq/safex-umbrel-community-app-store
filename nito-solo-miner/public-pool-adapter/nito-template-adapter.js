@@ -513,7 +513,7 @@ function hashMeetsTarget(hashInternal, targetHex) {
 /** Create a JSON-RPC 1.0 call function for a private node endpoint. Never logs credentials. */
 function createJsonRpcCall({ url, username, password, cookieFile, readCookieFile = file => require('node:fs').readFileSync(file, 'utf8'), fetchImpl = globalThis.fetch, timeoutMs = 15000 }) {
   let id = 0;
-  if (typeof url !== 'string' || !/^https?:\\/\\//i.test(url)) throw new Error('RPC URL must be HTTP(S)');
+  if (typeof url !== 'string' || (!url.startsWith('http://') && !url.startsWith('https://'))) throw new Error('RPC URL must be HTTP(S)');
   const hasUserPass = typeof username === 'string' && username.length > 0 && typeof password === 'string' && password.length > 0;
   if (!cookieFile && !hasUserPass) throw new Error('RPC credentials or cookieFile are required');
   if (cookieFile && (typeof cookieFile !== 'string' || typeof readCookieFile !== 'function')) throw new Error('cookieFile and reader must be valid');
