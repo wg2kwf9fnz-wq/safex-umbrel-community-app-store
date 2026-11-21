@@ -60,3 +60,29 @@ test('candidate block envelope preserves opaque transaction bytes', () => {
   assert.equal(block.subarray(81, 83).toString('hex'), coinbase);
   assert.equal(block.subarray(83).toString('hex'), 'deadbeefcafe00');
 });
+
+test('two-leaf txid Merkle root hashes internal-order leaves', () => {
+  const a = '01'.repeat(32);
+  const b = '02'.repeat(32);
+  const expected = require('node:crypto').createHash('sha256')
+    .update(require('node:crypto').createHash('sha256')
+      .update(Buffer.concat([Buffer.from(a, 'hex').reverse(), Buffer.from(b, 'hex').reverse()])).digest())
+    .digest().toString('hex');
+  assert.equal(txidMerkleRootInternal([a, b]).toString('hex'), expected);
+});
+
+test('odd txid Merkle leaf is duplicated at its level', () => {
+  const a = '01'.repeat(32), b = '02'.repeat(32), c = '03'.repeat(32);
+  const h = bytes => require('node:crypto').createHash('sha256')
+    .update(require('node:crypto').createHash('sha256').update(bytes).digest()).digest();
+  const A = Buffer.from(a, 'hex').reverse(), B = Buffer.from(b, 'hex').reverse(), C = Buffer.from(c, 'hex').reverse();
+  const AB = h(Buffer.concat([A, B])), CC = h(Buffer.concat([C, C]));
+  const expected = h(Buffer.concat([AB, CC]));
+  assert.equal(txidMerkleRootInternal([a, b, c]).toString('hex'), expected.toString('hex'));
+});
+
+test('candidate block rejects malformed final header and transaction payload', () => {
+  assert.throws(() => serializeCandidateBlock('00', '0102', []), /80 bytes/);
+  assert.throws(() => serializeCandidateBlock('00'.repeat(80), 'zz', []), /coinbase/);
+  assert.throws(() => serializeCandidateBlock('00'.repeat(80), '0102', [{ data: 'xyz' }]), /raw hex/);
+});
