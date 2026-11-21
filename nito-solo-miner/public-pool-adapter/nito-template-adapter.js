@@ -118,6 +118,46 @@ function txidMerkleRootInternal(txids) {
 }
 
 
+/**
+ * Coinbase Merkle branch for a template transaction list.
+ * Input txids are display-order hex. The coinbase is index 0; branches are
+ * returned as internal-order hex, matching the Stratum V1 merkle-branch field.
+ * This computes the txid tree only (never the witness tree).
+ */
+function coinbaseMerkleBranchInternal(templateTxids) {
+  if (!Array.isArray(templateTxids)) throw new TypeError('template txids must be an array');
+  let level = [Buffer.alloc(32), ...templateTxids.map(txid => {
+    if (!HEX_32.test(txid)) throw new Error('invalid template txid');
+    return Buffer.from(txid, 'hex').reverse();
+  })];
+  let index = 0;
+  const branch = [];
+  while (level.length > 1) {
+    const siblingIndex = index ^ 1;
+    const sibling = level[siblingIndex] || level[index];
+    branch.push(Buffer.from(sibling));
+    if (level.length % 2 === 1) level.push(Buffer.from(level[level.length - 1]));
+    const next = [];
+    for (let i = 0; i < level.length; i += 2) {
+      next.push(hash256(Buffer.concat([level[i], level[i + 1]])));
+    }
+    level = next;
+    index = Math.floor(index / 2);
+  }
+  return branch.map(b => b.toString('hex'));
+}
+
+/** Apply a Stratum coinbase txid (display-order hex) to a coinbase branch. */
+function applyCoinbaseMerkleBranchInternal(coinbaseTxid, branchHex) {
+  if (!HEX_32.test(coinbaseTxid)) throw new Error('invalid coinbase txid');
+  if (!Array.isArray(branchHex) || branchHex.some(h => !HEX_32.test(h))) throw new Error('invalid merkle branch');
+  let root = Buffer.from(coinbaseTxid, 'hex').reverse();
+  for (const siblingHex of branchHex) {
+    root = hash256(Buffer.concat([root, Buffer.from(siblingHex, 'hex')]));
+  }
+  return root;
+}
+
 /** Bitcoin/Nito-compatible CompactSize encoding for a non-negative count. */
 function compactSize(value) {
   if (!Number.isSafeInteger(value) || value < 0) throw new RangeError('CompactSize value must be a non-negative safe integer');
@@ -152,4 +192,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, compactSize, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCandidateBlock };
