@@ -29,7 +29,7 @@ Dependency-free JavaScript helpers in `public-pool-adapter/nito-template-adapter
 - Standard 80-byte header serialization and double-SHA256 header hash.
 - Candidate block assembly from share nonce/time/extranonce, preserving raw template transaction bytes.
 
-This is a compatibility prototype, not integrated into Public Pool. It compares hashes against a supplied share target and submits only network-target candidates through an injected RPC seam; pool difficulty derivation, time policy, version rolling, payout address/script validation, Nito consensus, and real `submitblock` RPC remain unintegrated.
+This is a compatibility prototype, not integrated into Public Pool. It compares hashes against a supplied share target and submits only network-target candidate, even if the pool share target is stricters through an injected RPC seam; pool difficulty derivation, time policy, version rolling, payout address/script validation, Nito consensus, and real `submitblock` RPC remain unintegrated.
 
 ## Source cross-check
 
