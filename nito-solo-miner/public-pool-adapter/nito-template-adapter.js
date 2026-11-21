@@ -564,14 +564,16 @@ function createNitoRpcAdapter(callRpc) {
 
 /** Minimal server-side bridge state. Transport and connection/auth are supplied by the host pool. */
 class NitoStratumBridge {
-  constructor(rpcAdapter, { maxJobs = 64, jobTtlMs = 300000, now = () => Date.now() } = {}) {
+  constructor(rpcAdapter, { maxJobs = 64, jobTtlMs = 300000, maxTrackedSharesPerJob = 4096, now = () => Date.now() } = {}) {
     if (!rpcAdapter || typeof rpcAdapter.getBlockTemplate !== 'function' || typeof rpcAdapter.submitBlock !== 'function') throw new TypeError('Nito RPC adapter required');
     if (!Number.isInteger(maxJobs) || maxJobs < 1) throw new RangeError('maxJobs must be positive');
     if (!Number.isSafeInteger(jobTtlMs) || jobTtlMs < 1) throw new RangeError('jobTtlMs must be positive');
+    if (!Number.isSafeInteger(maxTrackedSharesPerJob) || maxTrackedSharesPerJob < 1) throw new RangeError('maxTrackedSharesPerJob must be positive');
     if (typeof now !== 'function') throw new TypeError('now must be a function');
     this.rpc = rpcAdapter;
     this.maxJobs = maxJobs;
     this.jobTtlMs = jobTtlMs;
+    this.maxTrackedSharesPerJob = maxTrackedSharesPerJob;
     this.now = now;
     this.template = null;
     this.jobs = new Map();
@@ -592,7 +594,7 @@ class NitoStratumBridge {
     if (!this.template) throw new Error('refreshTemplate must be called before creating jobs');
     this.purgeExpiredJobs();
     const job = createNitoStratumJob({ template: this.template, jobId, coinbaseParts, shareTarget, difficulty, cleanJobs });
-    this.jobs.set(jobId, { job, createdAt: this.now() });
+    this.jobs.set(jobId, { job, createdAt: this.now(), submittedHashes: new Set() });
     while (this.jobs.size > this.maxJobs) this.jobs.delete(this.jobs.keys().next().value);
     return job;
   }
@@ -600,7 +602,16 @@ class NitoStratumBridge {
     this.purgeExpiredJobs();
     const entry = this.jobs.get(jobId);
     if (!entry) throw new Error('unknown or expired mining job');
-    return processAndSubmitNitoShare(entry.job, share, this.rpc);
+    const processed = processNitoShare(entry.job, share);
+    const hash = processed.headerCandidate.blockHashInternalHex;
+    if ((processed.meetsShareTarget || processed.meetsNetworkTarget) && entry.submittedHashes.has(hash)) return Object.freeze({ ...processed, duplicate: true, submitResult: null });
+    if (processed.meetsShareTarget || processed.meetsNetworkTarget) {
+      entry.submittedHashes.add(hash);
+      while (entry.submittedHashes.size > this.maxTrackedSharesPerJob) entry.submittedHashes.delete(entry.submittedHashes.values().next().value);
+    }
+    if (!processed.meetsNetworkTarget) return Object.freeze({ ...processed, duplicate: false, submitResult: null });
+    const submitResult = await this.rpc.submitBlock(processed.candidate);
+    return Object.freeze({ ...processed, duplicate: false, submitResult });
   }
 }
 
