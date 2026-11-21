@@ -364,6 +364,7 @@ test('compact nBits decoder yields Nito v4 genesis diff-one target', () => {
 test('difficulty converts to share targets with Nito diff-one baseline', () => {
   const diff1 = '00000000ffff0000000000000000000000000000000000000000000000000000';
   assert.equal(difficultyToTarget(1), diff1);
+  assert.equal(difficultyToTarget(1), compactBitsToTarget('1d00ffff'));
   assert.equal(difficultyToTarget('2'), (BigInt('0x' + diff1) / 2n).toString(16).padStart(64, '0'));
   assert.equal(difficultyToTarget('0.5'), (BigInt('0x' + diff1) * 2n).toString(16).padStart(64, '0'));
   assert.equal(difficultyToTarget('1e3'), (BigInt('0x' + diff1) / 1000n).toString(16).padStart(64, '0'));
