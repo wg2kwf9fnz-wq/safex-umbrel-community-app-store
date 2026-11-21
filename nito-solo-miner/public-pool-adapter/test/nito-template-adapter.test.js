@@ -170,7 +170,7 @@ test('coinbase height script number and extranonce placeholder are minimally enc
   assert.equal(encodeCoinbaseHeight(128).toString('hex'), '028000');
   const built = buildCoinbaseScriptSig({ height: 123, flagsHex: 'abcd', extranonceHex: 'aabbccdd', extraHex: 'ee' });
   assert.equal(built.scriptSigHex, '017babcdaabbccddee');
-  assert.equal(built.extranonceOffsetBytes, 3);
+  assert.equal(built.extranonceOffsetBytes, 4);
   assert.equal(built.extranonceSizeBytes, 4);
   assert.throws(() => encodeCoinbaseHeight(-1), /non-negative/);
 });
