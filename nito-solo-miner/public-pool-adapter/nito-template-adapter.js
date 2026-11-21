@@ -171,6 +171,31 @@ function compactSize(value) {
   const out = Buffer.alloc(9); out[0] = 0xff; out.writeBigUInt64LE(BigInt(value), 1); return out;
 }
 
+/** Serialize the standard 80-byte Nito/Bitcoin-style proof-of-work header. */
+function serializeMiningHeader({ version, previousblockhash, merkleRootInternal, timestamp, bits, nonce }) {
+  if (!Number.isSafeInteger(version)) throw new Error('header version must be an integer');
+  if (!HEX_32.test(previousblockhash)) throw new Error('previous block hash must be 32-byte hex');
+  if (!Buffer.isBuffer(merkleRootInternal) || merkleRootInternal.length !== 32) throw new Error('merkle root must be a 32-byte internal-order Buffer');
+  for (const [name, value] of Object.entries({ timestamp, nonce })) {
+    if (!Number.isSafeInteger(value) || value < 0 || value > 0xffffffff) throw new Error(`header ${name} must be uint32`);
+  }
+  if (typeof bits !== 'string' || !/^[0-9a-fA-F]{8}$/.test(bits)) throw new Error('bits must be 4-byte hex');
+  const header = Buffer.alloc(80);
+  header.writeInt32LE(version, 0);
+  Buffer.from(previousblockhash, 'hex').reverse().copy(header, 4);
+  merkleRootInternal.copy(header, 36);
+  header.writeUInt32LE(timestamp, 68);
+  header.writeUInt32LE(parseInt(bits, 16), 72);
+  header.writeUInt32LE(nonce, 76);
+  return header;
+}
+
+/** Return the proof-of-work header hash as internal byte order. */
+function miningHeaderHash(header) {
+  if (!Buffer.isBuffer(header) || header.length !== 80) throw new Error('header must be exactly 80 bytes');
+  return hash256(header);
+}
+
 /**
  * Serialize a candidate block envelope without parsing/re-serializing template
  * transactions. headerHex must be the final 80-byte header; coinbaseHex must
@@ -192,4 +217,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
