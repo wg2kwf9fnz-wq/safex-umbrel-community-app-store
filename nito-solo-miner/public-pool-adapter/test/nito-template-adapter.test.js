@@ -37,6 +37,7 @@ test('preserves and validates optional GBT mining metadata', () => {
   assert.deepEqual(normalized.mutable, fixture.mutable);
   assert.deepEqual(normalized.capabilities, fixture.capabilities);
   assert.throws(() => normalizeNitoTemplate({ ...base, noncerange: 'bad' }), /noncerange/);
+  assert.throws(() => normalizeNitoTemplate({ ...base, noncerange: '00000000' }), /8-byte hex/);
   assert.throws(() => normalizeNitoTemplate({ ...base, capabilities: 'proposal' }), /capabilities/);
 });
 
