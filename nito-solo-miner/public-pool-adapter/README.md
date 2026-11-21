@@ -25,6 +25,6 @@ These are serialization and helper-level components, not a complete chain adapte
 
 ## Verification
 
-GitHub Actions run #624 passed **62 tests** at commit `bdc94e8f`. The suite includes regression tests for optional GBT metadata, coinbase-height encoding, witness commitment cross-checks, share-target/difficulty conversion, JSON-RPC transport, bridge job lifecycle, and guarded submission.
+GitHub Actions run #640 passed **62 tests** at commit `f430d579`. The suite includes regression tests for optional GBT metadata, coinbase-height encoding, witness commitment cross-checks, share-target/difficulty conversion, JSON-RPC transport, bridge job lifecycle, and guarded submission.
 
 Pool-configured session difficulty integration, timestamp policy, version rolling, payout-address/script validation, Nito consensus, real `submitblock`, live mining, and Umbrel packaging remain unimplemented/unverified. The HTTP JSON-RPC client and adapter have only been tested with injected fake transports.
