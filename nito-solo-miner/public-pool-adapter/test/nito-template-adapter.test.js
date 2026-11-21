@@ -433,7 +433,7 @@ test('bridge rejects duplicate share hashes and does not resubmit duplicate bloc
   const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'ff'.repeat(32) }), submitBlock: async block => { submitted.push(block.blockHex); return 'accepted'; } });
   await bridge.refreshTemplate();
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
-  bridge.createJob({ jobId: 'duplicate-job', coinbaseParts: parts, shareTarget: 'ff'.repeat(32 });
+  bridge.createJob({ jobId: 'duplicate-job', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
   const share = { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime };
   const first = await bridge.submitShare('duplicate-job', share);
   const second = await bridge.submitShare('duplicate-job', share);
