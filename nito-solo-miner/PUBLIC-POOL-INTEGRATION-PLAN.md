@@ -25,6 +25,8 @@ Required replacement:
 
 Current upstream constructs a BitcoinJS coinbase transaction, computes a witness commitment, splits coinbase parts, and mutates a BitcoinJS block in `buildHeaderBuffer` / `copyAndUpdateBlock`.
 
+Current method hotspots: `createCoinbaseTransaction`, `getPaymentScript`, `buildHeaderBuffer`, `copyAndUpdateBlock`, and `response`.
+
 Required replacement:
 - Build payout outputs with a Nito-aware address/script decoder and explicit reward/fee cap.
 - Include BIP34 height encoding and the GBT `coinbaseaux.flags` bytes if required by Nito.
@@ -36,6 +38,8 @@ Required replacement:
 
 Current upstream parses submissions into Bitcoin-oriented version/nonce/time fields and delegates block mutation to `MiningJob`.
 
+Current submission seam: `handleMiningSubmission` obtains the job/template, checks duplicate hashes, parses version/nonce/time, calls `buildHeaderBuffer`, calculates submission difficulty, then calls `copyAndUpdateBlock` and RPC `SUBMIT_BLOCK` for network candidates.
+
 Required replacement:
 - Derive a per-connection share target from the configured pool difficulty; do not substitute the network target.
 - Validate extranonce length, nonce uint32, timestamp policy, version-mask policy, and job expiry.
@@ -46,6 +50,8 @@ Required replacement:
 ### 4. `src/services/bitcoin-rpc.service.ts`
 
 Upstream currently calls `getblocktemplate` with BIP145 parameters and has no `submitblock` method in the reviewed source.
+
+Current RPC seam: `getBlockTemplate` → `loadBlockTemplate` calls `getblocktemplate` with `rules: ['segwit']`; the reviewed service has no `submitblock` method.
 
 Required replacement:
 - Keep existing RPC credential/cookie handling private to the server.
