@@ -49,3 +49,7 @@ Nito v4's pool-compatibility contract is stricter than a superficial RPC compati
 - [ ] amd64 and arm64 images built and tested.
 
 No mining, block submission, wallet creation, or live node changes have been performed.
+
+## Prototype code checkpoint
+
+An isolated, dependency-free JavaScript adapter prototype now lives in `public-pool-adapter/`. It validates the GBT envelope, retains transaction `data` as opaque hex, checks dependency ordering/closure, and includes a txid Merkle helper. Node built-in tests are authored but have not been run in this environment. It is **not wired into Public Pool** and does not yet implement coinbase, witness commitment, header/share validation, block serialization or submission.
