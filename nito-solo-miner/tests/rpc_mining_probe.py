@@ -49,6 +49,39 @@ if not isinstance(template["transactions"], list):
 print("GBT OK:")
 print(f"  height={template['height']} previous={template['previousblockhash']}")
 print(f"  bits={template['bits']} target={template['target']} coinbasevalue={template['coinbasevalue']}")
+
+def compact_target(bits):
+    compact = int(bits, 16)
+    exponent = compact >> 24
+    mantissa = compact & 0x007fffff
+    if compact & 0x00800000 or mantissa == 0:
+        raise ValueError('negative/zero compact target')
+    target = mantissa >> (8 * (3 - exponent)) if exponent <= 3 else mantissa << (8 * (exponent - 3))
+    if target <= 0 or target >= 1 << 256:
+        raise ValueError('compact target overflow')
+    return f'{target:064x}'
+
+try:
+    decoded_target = compact_target(template['bits'])
+except Exception as e:
+    sys.exit(f'Invalid compact bits: {e}')
+if decoded_target != template['target'].lower():
+    sys.exit(f"GBT target mismatch: bits decode to {decoded_target}, RPC target is {template['target']}")
+print('  compact bits and full target agree')
+for index, tx in enumerate(template['transactions']):
+    if not all(key in tx for key in ('data', 'txid', 'hash', 'depends')):
+        sys.exit(f'GBT transaction {index} is missing required raw metadata')
+    if not isinstance(tx['data'], str) or not tx['data'] or len(tx['data']) % 2:
+        sys.exit(f'GBT transaction {index} raw data is malformed hex')
+    try:
+        bytes.fromhex(tx['data'])
+    except ValueError:
+        sys.exit(f'GBT transaction {index} raw data is malformed hex')
+print('  transaction envelope fields and raw hex are present')
+if template.get('default_witness_commitment'):
+    print(f"  default_witness_commitment={template['default_witness_commitment']}")
+if template.get('coinbaseaux'):
+    print(f"  coinbaseaux={template['coinbaseaux']}")
 print(f"  tx_count={len(template['transactions'])} rules={template.get('rules', [])}")
 
 fixture_path = os.getenv('NITO_GBT_FIXTURE_PATH')
