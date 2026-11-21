@@ -428,6 +428,22 @@ test('bridge expires stale jobs by configured TTL', async () => {
   assert.equal(bridge.jobs.size, 0);
 });
 
+test('bridge rejects duplicate share hashes and does not resubmit duplicate blocks', async () => {
+  const submitted = [];
+  const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'ff'.repeat(32) }), submitBlock: async block => { submitted.push(block.blockHex); return 'accepted'; } });
+  await bridge.refreshTemplate();
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  bridge.createJob({ jobId: 'duplicate-job', coinbaseParts: parts, shareTarget: 'ff'.repeat(32 });
+  const share = { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime };
+  const first = await bridge.submitShare('duplicate-job', share);
+  const second = await bridge.submitShare('duplicate-job', share);
+  assert.equal(first.duplicate, false);
+  assert.equal(first.submitResult, 'accepted');
+  assert.equal(second.duplicate, true);
+  assert.equal(second.submitResult, null);
+  assert.equal(submitted.length, 1);
+});
+
 test('bridge forwards valid shares and submits only network-target blocks', async () => {
   const submissions = [];
   const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'FF'.repeat(32) }), submitBlock: async candidate => { submissions.push(candidate); return 'accepted'; } });
