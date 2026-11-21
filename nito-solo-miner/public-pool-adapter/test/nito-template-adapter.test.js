@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -163,6 +163,16 @@ test('prepared Stratum template carries raw transactions and Merkle branches', (
 test('prepared Stratum template uses mintime if curtime is earlier', () => {
   const normalized = normalizeNitoTemplate({ ...base, curtime: base.mintime - 5 });
   assert.equal(prepareStratumTemplate(normalized).timestamp, base.mintime);
+});
+
+test('coinbase height script number and extranonce placeholder are minimally encoded', () => {
+  assert.equal(encodeCoinbaseHeight(1).toString('hex'), '0101');
+  assert.equal(encodeCoinbaseHeight(128).toString('hex'), '028000');
+  const built = buildCoinbaseScriptSig({ height: 123, flagsHex: 'abcd', extranonceHex: 'aabbccdd', extraHex: 'ee' });
+  assert.equal(built.scriptSigHex, '017babcdaabbccddee');
+  assert.equal(built.extranonceOffsetBytes, 3);
+  assert.equal(built.extranonceSizeBytes, 4);
+  assert.throws(() => encodeCoinbaseHeight(-1), /non-negative/);
 });
 
 test('coinbase serializer places witness data after outputs and returns stripped txid', () => {
