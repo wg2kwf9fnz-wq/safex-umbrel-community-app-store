@@ -6,7 +6,7 @@ const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witne
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
-  curtime: 1700000000, mintime: 1699999900, coinbasevalue: 5000000000,
+  curtime: 1700000000, mintime: 1699999900, coinbasevalue: 5000000000, target: 'ff'.repeat(32),
   rules: [], transactions: [
     { data: 'deadbeef', txid: '22'.repeat(32), hash: '33'.repeat(32), depends: [] },
     { data: 'cafe00', txid: '44'.repeat(32), hash: '55'.repeat(32), depends: [1] }
@@ -22,6 +22,9 @@ test('normalizer retains raw transaction bytes and metadata without decoding', (
 
 test('rejects malformed template and malformed transaction bytes', () => {
   assert.throws(() => normalizeNitoTemplate({ ...base, height: -1 }), /height/);
+  assert.throws(() => normalizeNitoTemplate({ ...base, target: 'xyz' }), /target must be 32-byte hex/);
+  const noTarget = { ...base }; delete noTarget.target;
+  assert.throws(() => normalizeNitoTemplate(noTarget), /missing required field: target/);
   assert.throws(() => normalizeNitoTemplate({ ...base, transactions: [{ ...base.transactions[0], data: 'abc' }] }), /raw hex/);
 });
 
@@ -238,7 +241,8 @@ test('Stratum bridge rejects missing target and flags non-candidate hash', () =>
   assert.equal(processed.meetsNetworkTarget, false);
   assert.equal(processed.candidate, null);
   assert.ok(processed.headerCandidate);
-  assert.throws(() => createNitoStratumJob({ template: normalizeNitoTemplate(base), jobId: 'x', coinbaseParts: parts }), /target required/);
+  const noTarget = { ...base }; delete noTarget.target;
+  assert.throws(() => createNitoStratumJob({ template: normalizeNitoTemplate(noTarget), jobId: 'x', coinbaseParts: parts }), /missing required field: target/);
 });
 
 test('target comparison interprets header hash in display byte order', () => {
