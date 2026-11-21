@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -128,6 +128,26 @@ test('coinbase serializer places witness data after outputs and returns stripped
     .update(require('node:crypto').createHash('sha256').update(stripped).digest()).digest().reverse().toString('hex');
   assert.equal(cb.txid, txid);
   assert.equal(cb.totalValue, 50);
+});
+
+test('coinbase serializer splits extranonce and reassembles raw and stripped transaction', () => {
+  const outputs = [{ value: 50, scriptHex: '51' }];
+  const base = serializeCoinbase({ scriptSigHex: '0101aabb0202', outputs, extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  const assembled = assembleCoinbaseFromParts({
+    coinbasePart1: base.coinbasePart1,
+    coinbasePart2: base.coinbasePart2,
+    coinbaseStrippedPart1: base.coinbaseStrippedPart1,
+    coinbaseStrippedPart2: base.coinbaseStrippedPart2,
+    extranonceHex: 'ccdd'
+  });
+  const expected = serializeCoinbase({ scriptSigHex: '0101ccdd0202', outputs });
+  assert.equal(assembled.rawHex, expected.rawHex);
+  assert.equal(assembled.strippedHex, expected.strippedHex);
+  assert.equal(assembled.txid, expected.txid);
+});
+
+test('coinbase splitter rejects an out-of-range extranonce placeholder', () => {
+  assert.throws(() => serializeCoinbase({ scriptSigHex: '0101', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 1, extranonceSizeBytes: 2 }), /fit inside/);
 });
 
 test('coinbase serializer rejects invalid scriptSig and overpayment', () => {
