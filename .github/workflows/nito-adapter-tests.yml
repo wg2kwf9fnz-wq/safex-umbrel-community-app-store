@@ -22,8 +22,7 @@ jobs:
       - name: Syntax-check adapter and tests
         working-directory: nito-solo-miner/public-pool-adapter
         run: |
-          node --check nito-template-adapter.js
-          node --check test/nito-template-adapter.test.js
+          npm run check
           python3 -m py_compile ../tests/rpc_mining_probe.py
       - name: Run prototype tests
         working-directory: nito-solo-miner/public-pool-adapter
