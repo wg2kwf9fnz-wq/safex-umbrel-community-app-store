@@ -171,6 +171,28 @@ function compactSize(value) {
   const out = Buffer.alloc(9); out[0] = 0xff; out.writeBigUInt64LE(BigInt(value), 1); return out;
 }
 
+/**
+ * Build chain-neutral Stratum job inputs from a normalized GBT.
+ * This deliberately stops before coinbase creation and notify wire-format
+ * endianness; those are separate integration seams to test against miners.
+ */
+function prepareStratumTemplate(template) {
+  if (!template || !Array.isArray(template.transactions)) throw new TypeError('normalized template required');
+  const txids = template.transactions.map(tx => tx.txid);
+  return Object.freeze({
+    height: template.height,
+    version: template.version,
+    bits: template.bits,
+    previousblockhash: template.previousblockhash,
+    previousHashInternal: Buffer.from(template.previousblockhash, 'hex').reverse(),
+    timestamp: Math.max(template.curtime, template.mintime),
+    coinbasevalue: template.coinbasevalue,
+    target: template.target,
+    merkleBranch: Object.freeze(coinbaseMerkleBranchInternal(txids)),
+    transactions: template.transactions
+  });
+}
+
 /** Serialize the standard 80-byte Nito/Bitcoin-style proof-of-work header. */
 function serializeMiningHeader({ version, previousblockhash, merkleRootInternal, timestamp, bits, nonce }) {
   if (!Number.isSafeInteger(version)) throw new Error('header version must be an integer');
@@ -217,4 +239,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
