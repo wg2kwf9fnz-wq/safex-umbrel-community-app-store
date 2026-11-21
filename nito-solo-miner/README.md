@@ -35,6 +35,10 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 - Added an injectable Nito RPC adapter seam for GBT retrieval and `submitblock`, plus a Stratum job/share bridge that builds `mining.notify` and assembles candidate blocks.
 - Added pure RPC payload helpers and an injectable RPC-call seam tested with fake calls, plus a private HTTP JSON-RPC client factory; no real Nito daemon RPC has been made.
 
+## Capturing real Nito templates
+
+The read-only RPC probe can optionally save a raw GBT fixture for later compatibility tests: set `NITO_GBT_FIXTURE_PATH` in addition to the RPC credentials. It creates the file with mode `0600`; the fixture includes raw transaction data, so keep it private. This capture has not been run against a node from this environment.
+
 ## Verification status
 
 - GitHub Actions run #64 passed 21 tests at commit `64d68db`.
