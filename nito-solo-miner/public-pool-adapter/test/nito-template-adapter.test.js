@@ -45,6 +45,15 @@ test('normalizes target hex case', () => {
   assert.equal(normalizeNitoTemplate({ ...base, target: 'AB'.repeat(32) }).target, 'ab'.repeat(32));
 });
 
+test('validates optional GBT transaction fee/sigops/weight metadata', () => {
+  for (const key of ['fee', 'sigops', 'weight']) {
+    assert.throws(() => normalizeNitoTemplate({ ...base, transactions: [{ ...base.transactions[0], [key]: -1 }] }), new RegExp(`${key} must be a non-negative`));
+    assert.throws(() => normalizeNitoTemplate({ ...base, transactions: [{ ...base.transactions[0], [key]: 1.5 }] }), new RegExp(`${key} must be a non-negative`));
+  }
+  const valid = normalizeNitoTemplate({ ...base, transactions: [{ ...base.transactions[0], fee: 0, sigops: 12, weight: 400 }] });
+  assert.equal(valid.transactions[0].weight, 400);
+});
+
 test('rejects dependency indexes pointing forward', () => {
   assert.throws(() => normalizeNitoTemplate({
     ...base,
