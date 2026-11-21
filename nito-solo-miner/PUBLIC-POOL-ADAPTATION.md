@@ -1,68 +1,59 @@
-# Public Pool → Nito chain adapter: source map
+# Public Pool → Nito adaptation source map and checkpoint
 
-Reviewed upstream source at commit `96a9202c11de2c6fc8d41155e2e779912a476dc7` (do not use floating master for reproducible builds).
+Public Pool upstream reviewed at pinned commit `96a9202c11de2c6fc8d41155e2e779912a476dc7` (do not build against floating master).
 
-## High-risk Bitcoin-specific areas
+## Bitcoin-specific integration seams
 
 | Upstream path | Required Nito review/adaptation |
 |---|---|
-| `src/services/bitcoin-rpc.service.ts` | RPC naming/config, GBT request rules, template cache, `submitblock`, block polling |
-| `src/models/bitcoin-rpc/IBlockTemplate.ts` | GBT fields and transaction metadata; compare Nito v4 schema |
-| `src/services/stratum-v1-jobs.service.ts` | Block template → Stratum job; coinbase splitting; merkle branch generation; witness commitment |
-| `src/models/MiningJob.ts` | Coinbase outputs/script, tx assembly, block reconstruction and serialization |
-| `src/models/StratumV1Client.ts` | Header hash / share validation / block-candidate path |
-| `src/controllers/external-share/external-share.controller.ts` | External share parsing and Bitcoin header validation |
-| `src/models/bitcoin-rpc/IBlockTemplateTx` | Ensure transaction bytes, txid/hash distinction and dependencies preserved |
+| `src/services/bitcoin-rpc.service.ts` | RPC configuration, GBT rules, template cache, polling and `submitblock` |
+| `src/models/bitcoin-rpc/IBlockTemplate.ts` | GBT schema and transaction metadata |
+| `src/services/stratum-v1-jobs.service.ts` | Raw template model, job updates, txid/witness trees, coinbase branch |
+| `src/models/MiningJob.ts` | Coinbase script/outputs, extranonce split, header/root assembly |
+| `src/models/StratumV1Client.ts` | Submitted share parsing, share target, candidate block and submission |
+| `src/controllers/external-share/external-share.controller.ts` | External share parsing and header validation |
+| `src/models/bitcoin-rpc/IBlockTemplateTx` | Preserve transaction bytes, txid/wtxid distinction, dependencies |
 
-These are **inspection targets**, not a claim that each file must be rewritten. Keep chain-neutral Stratum transport, statistics, API and UI whenever possible.
+Keep Stratum transport, statistics, API/UI where chain-neutral. These paths are investigation targets, not necessarily full rewrites.
 
-## Proposed adapter interface (design only)
+## Prototype adapter currently implemented
 
-A narrow chain abstraction should own:
-- RPC method wrappers and template retrieval
-- Template normalization without losing Nito fields/raw bytes
-- Transaction identifier and Merkle-tree rules
-- Coinbase construction and payout script/address validation
-- Witness/consensus commitment construction
-- Header serialization/hash and target/difficulty conversion
-- Candidate block serialization and submission
+Dependency-free JavaScript helpers in `public-pool-adapter/nito-template-adapter.js`:
 
-The adapter must pass fixture tests before Public Pool's Stratum server can be exposed.
+- GBT envelope/rules and transaction metadata validation; raw transaction hex retained untouched.
+- Dependency index validation, ordering, closure-aware selection.
+- Txid Merkle root and coinbase Merkle branches in internal byte order.
+- Witness Merkle root using a null coinbase leaf, GBT witness hashes, commitment digest, and witness commitment OP_RETURN script encoding.
+- Coinbase transaction serialization with one 32-byte witness-reserved-value item, stripped serialization/txid, output-value limit, and extranonce split/reassembly.
+- Stratum template preparation and nine-field `mining.notify` formatting including previous-hash word order.
+- Standard 80-byte header serialization and double-SHA256 header hash.
+- Candidate block assembly from share nonce/time/extranonce, preserving raw template transaction bytes.
 
-## Required fixture tests
+This is a compatibility prototype, not integrated into Public Pool. It does not validate share difficulty, time policy, version rolling, payout address/script, Nito consensus, or `submitblock`.
 
-- GBT schema and rule negotiation for Nito v4
-- Template transactions with and without dependencies
-- Raw transaction byte preservation, including Orchard-bearing transactions
-- Correct txid Merkle root (not witness-hash substitution)
-- Coinbase script/output/payout and fee total
-- Nito witness commitment semantics
-- Header field byte order, version, time, bits, nonce and hash
-- Candidate block accepted by Nito regtest `submitblock`, then confirmed
+## Source cross-check
 
-## Umbrel packaging notes
+Inspected NitoNetwork/Nito-core v3.0.0:
+- `src/primitives/block.h` and `block.cpp`: standard 80-byte header serialization and HashWriter header hash.
+- `src/consensus/merkle.cpp`: txid-based block Merkle root; witness root uses a null coinbase leaf.
+- `src/primitives/transaction.cpp`: txid excludes witness; witness hash includes witness.
+- `src/rpc/mining.cpp`: GBT exposes `data`, `txid`, `hash`, `depends`, and standard witness rules.
 
-Use the official Public Pool Umbrel app as a packaging reference (server + UI + proxy + persistent database). Do not copy its Bitcoin app dependencies or Bitcoin RPC wiring unchanged. Keep RPC credentials server-side and expose only the Stratum listener and authenticated Umbrel-proxied UI/API.
+This confirms the inspected v3.0.0 behavior only. The user's target Nito v4 must be verified against its exact daemon/source and captured GBT fixtures; do not treat this cross-check as consensus proof.
 
-## Deeper code-path inspection (upstream pinned commit)
+## Test and CI checkpoint
 
-### Template/job generation
-`src/services/stratum-v1-jobs.service.ts` currently parses every template transaction using `bitcoinjs.Transaction.fromHex(t.data)`, then derives txid leaves from parsed transactions and computes the witness root from the parsed transaction set. This is a blocker for Nito's requirement to keep Orchard-bearing transaction bytes opaque. Replace this path with a chain adapter that retains raw transaction hex and uses template `txid` / witness-hash metadata for commitments; never serialize template transactions back from a parser.
+GitHub Actions run #64 passed **21 tests** at commit `64d68db`. The suite has since expanded to **31 committed tests**, including coinbase serialization, extranonce splitting/reassembly, Stratum notify formatting and candidate block assembly. CI for the latest commit is not yet confirmed. The fixtures are synthetic and no live/regtest mining or block submission has been done.
 
-### Coinbase / job assembly
-`src/models/MiningJob.ts` constructs a Bitcoin-style coinbase, inserts the extranonce into its input script, and builds the candidate Merkle root from the coinbase txid plus precomputed branches. The candidate block reconstruction currently copies parsed transaction objects, replaces the coinbase, and updates the Merkle root. For Nito, retain this general Stratum mechanism only if its coinbase format and commitment logic are verified; full candidate serialization must concatenate the serialized coinbase and original template transaction bytes.
+## Required integration/release validation
 
-### Share validation / submission
-`src/models/StratumV1Client.ts` computes a header double-SHA256 hash for share difficulty, and for a network-difficulty candidate calls `copyAndUpdateBlock`, serializes via `bitcoinjs.Block.toHex(false)`, then calls RPC `submitblock`. Nito docs say SHA-256 mining/header compatibility remains unchanged, but block serialization must be adapted to preserve opaque transaction bytes. This is a likely minimal seam for block-candidate submission.
+1. Capture Nito v4 regtest GBT fixtures, including Orchard transactions; verify raw bytes and metadata.
+2. Validate coinbase height/script rules, payout script/address and reward/fees against Nito.
+3. Compare txid/wtxid, witness commitment and header hashes against daemon-produced templates and known-good fixtures.
+4. Integrate the adapter into the pinned Public Pool fork's job/share path.
+5. Validate share targets, timestamp/version mutation policy, block serialization and RPC `submitblock` on regtest; confirm a block.
+6. Package server + UI for Umbrel, pin images, test amd64/arm64, and review RPC isolation/auth/proxy rules.
 
-These findings narrow the first integration patch to template parsing/job construction and candidate-block serialization, but coinbase and witness commitment remain consensus-critical and must be tested before connecting miners.
+## Umbrel packaging
 
-
-## Prototype test expansion
-
-The committed adapter test file includes explicit txid Merkle byte-order/odd-leaf tests, coinbase branch cases (empty, one tx, odd tx count), standard 80-byte header field-layout/hash tests, and malformed candidate-envelope rejection cases. The earlier 11-test version passed in a scratch-copy run with Node.js 22; the suite now has 17 committed tests, but the six added tests have not yet been independently run outside CI; due to GitHub clone DNS restrictions in this environment, this is not a checkout-based run. GitHub Actions status for the latest commit has not been independently confirmed. These remain synthetic fixtures and do not establish Nito consensus compatibility.
-
-
-## Nito Core source cross-check (v3.0.0)
-
-Inspected NitoNetwork/Nito-core v3.0.0 `src/primitives/block.h`, `src/primitives/block.cpp`, `src/consensus/merkle.cpp`, `src/primitives/transaction.cpp`, and `src/rpc/mining.cpp`. That pinned source uses the standard 80-byte header field serialization (version, previous hash, txid Merkle root, time, bits, nonce), `CBlockHeader::GetHash()` via HashWriter, txid-based `BlockMerkleRoot`, witness Merkle root with a null coinbase leaf, and standard GBT `data`/`txid`/`hash`/`depends` fields. This validates only the inspected v3.0.0 code; current Nito v4 behavior and actual regtest acceptance remain to be verified. Adapter now includes coinbase Merkle branch generation, standard header serialization, and header double-SHA256 helper, with synthetic tests.
+Use the official Public Pool Umbrel app as a packaging reference (server + UI + proxy + persistent database). Do not copy Bitcoin RPC wiring/dependencies unchanged. RPC credentials remain server-side; only intended Stratum listener and authenticated Umbrel-proxied UI/API should be exposed.
