@@ -23,7 +23,7 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 ## Work completed
 
 - Reviewed Public Pool's RPC, template, Stratum job, MiningJob and share-submission paths at pinned upstream commit `96a9202c11de2c6fc8d41155e2e779912a476dc7`.
-- Confirmed from inspected Nito Core v3.0.0 source that its block header serialization is the standard 80-byte layout, header hash uses HashWriter, block Merkle root uses txids, and witness Merkle root uses a null coinbase leaf. This source cross-check is **not** proof for current Nito v4.
+- Inspected Nito Core v4.0 source: 80-byte header HashWriter hashing; txid Merkle root; witness Merkle root uses null coinbase leaf and wtxids; GBT emits raw data/txid/hash/depends and optional default witness commitment; mainnet genesis bits are `1d00ffff`. Source-level verification is documented in `PUBLIC-POOL-INTEGRATION-PLAN.md`; daemon fixtures/regtest are still unverified.
 - Prototype adapter validates the GBT envelope/rules/transaction metadata, preserves raw transaction hex, dependency indexes/order and dependency closure.
 - Implements txid Merkle roots, coinbase Merkle branches, witness Merkle root/commitment digest, commitment OP_RETURN script encoding.
 - Implements basic coinbase serialization with BIP34 height script helper and witness reserved value, stripped txid calculation, extranonce split/reassembly.
