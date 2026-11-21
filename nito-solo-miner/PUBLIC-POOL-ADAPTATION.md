@@ -47,7 +47,7 @@ This is source-level verification only. No captured Nito v4 GBT fixture, regtest
 
 ## Test and CI checkpoint
 
-GitHub Actions run #538 passed **59 tests** at commit `39133a3f`, including optional GBT metadata validation, minimal coinbase height opcode encodings, GBT default witness-commitment cross-check, TTL expiry, work-change job invalidation, bridge-boundary normalization, private JSON-RPC transport, difficulty-derived share targets, and compact nBits decoding. Fixtures are synthetic; no live/regtest mining or real block submission has been done.
+GitHub Actions run #559 passed **59 tests** at commit `03cc59c0`, including optional GBT metadata validation, minimal coinbase height opcode encodings, GBT default witness-commitment cross-check, TTL expiry, work-change job invalidation, bridge-boundary normalization, private JSON-RPC transport, difficulty-derived share targets, and compact nBits decoding. Fixtures are synthetic; no live/regtest mining or real block submission has been done.
 
 ## Integration roadmap
 
