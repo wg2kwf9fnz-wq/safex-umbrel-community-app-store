@@ -60,4 +60,9 @@ These findings narrow the first integration patch to template parsing/job constr
 
 ## Prototype test expansion
 
-The committed adapter test file now includes explicit two-leaf txid Merkle byte-order, odd-leaf duplication, and malformed candidate-envelope rejection cases. Eleven tests passed in a scratch-copy run with Node.js 22, including Merkle-root byte-order and odd-leaf cases; due to GitHub clone DNS restrictions in this environment, this is not a checkout-based run. GitHub Actions status for the latest commit has not been independently confirmed. These remain synthetic fixtures and do not establish Nito consensus compatibility.
+The committed adapter test file includes explicit txid Merkle byte-order/odd-leaf tests, coinbase branch cases (empty, one tx, odd tx count), standard 80-byte header field-layout/hash tests, and malformed candidate-envelope rejection cases. Seventeen tests passed in a scratch-copy run with Node.js 22, including Merkle-root byte-order and odd-leaf cases; due to GitHub clone DNS restrictions in this environment, this is not a checkout-based run. GitHub Actions status for the latest commit has not been independently confirmed. These remain synthetic fixtures and do not establish Nito consensus compatibility.
+
+
+## Nito Core source cross-check (v3.0.0)
+
+Inspected NitoNetwork/Nito-core v3.0.0 `src/primitives/block.h`, `src/primitives/block.cpp`, `src/consensus/merkle.cpp`, `src/primitives/transaction.cpp`, and `src/rpc/mining.cpp`. That pinned source uses the standard 80-byte header field serialization (version, previous hash, txid Merkle root, time, bits, nonce), `CBlockHeader::GetHash()` via HashWriter, txid-based `BlockMerkleRoot`, witness Merkle root with a null coinbase leaf, and standard GBT `data`/`txid`/`hash`/`depends` fields. This validates only the inspected v3.0.0 code; current Nito v4 behavior and actual regtest acceptance remain to be verified. Adapter now includes coinbase Merkle branch generation, standard header serialization, and header double-SHA256 helper, with synthetic tests.
