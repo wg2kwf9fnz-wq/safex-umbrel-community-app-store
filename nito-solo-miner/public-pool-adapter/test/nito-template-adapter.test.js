@@ -39,6 +39,8 @@ test('preserves and validates optional GBT mining metadata', () => {
   assert.throws(() => normalizeNitoTemplate({ ...base, noncerange: 'bad' }), /noncerange/);
   assert.throws(() => normalizeNitoTemplate({ ...base, noncerange: '00000000' }), /8-byte hex/);
   assert.throws(() => normalizeNitoTemplate({ ...base, capabilities: 'proposal' }), /capabilities/);
+  assert.throws(() => normalizeNitoTemplate({ ...base, default_witness_commitment: 'ab'.repeat(38) }), /38-byte witness commitment script/);
+  assert.throws(() => normalizeNitoTemplate({ ...base, default_witness_commitment: '6a24aa21a9ed' + 'ab'.repeat(31) }), /38-byte witness commitment script/);
 });
 
 test('normalizes target hex case', () => {
