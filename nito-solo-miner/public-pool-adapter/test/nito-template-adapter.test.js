@@ -364,6 +364,18 @@ test('bridge requires template before job and bounds job cache', async () => {
   await assert.rejects(bridge.submitShare('a', {}), /unknown or expired/);
 });
 
+test('bridge clears cached jobs when template work changes', async () => {
+  let raw = base;
+  const bridge = new NitoStratumBridge({ getBlockTemplate: async () => raw, submitBlock: async () => null });
+  await bridge.refreshTemplate();
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  bridge.createJob({ jobId: 'old-work', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
+  raw = { ...base, previousblockhash: '99'.repeat(32), height: base.height + 1 };
+  await bridge.refreshTemplate();
+  assert.equal(bridge.jobs.size, 0);
+  await assert.rejects(bridge.submitShare('old-work', {}), /unknown or expired/);
+});
+
 test('bridge expires stale jobs by configured TTL', async () => {
   let now = 1000;
   const bridge = new NitoStratumBridge({ getBlockTemplate: async () => base, submitBlock: async () => null }, { jobTtlMs: 50, now: () => now });
