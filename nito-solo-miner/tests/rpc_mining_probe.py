@@ -16,10 +16,17 @@ import base64
 import pathlib
 
 URL = os.getenv("NITO_RPC_URL", "http://127.0.0.1:8825")
-USER = os.environ.get("NITO_RPC_USER")
-PASSWORD = os.environ.get("NITO_RPC_PASSWORD")
-if not USER or not PASSWORD:
-    sys.exit("Set NITO_RPC_USER and NITO_RPC_PASSWORD; no credentials are read from files.")
+COOKIE_FILE = os.getenv('NITO_RPC_COOKIE_FILE')
+if COOKIE_FILE:
+    cookie = pathlib.Path(COOKIE_FILE).read_text().strip()
+    if ':' not in cookie:
+        sys.exit('Invalid RPC cookie file format')
+    USER, PASSWORD = cookie.split(':', 1)
+else:
+    USER = os.environ.get('NITO_RPC_USER')
+    PASSWORD = os.environ.get('NITO_RPC_PASSWORD')
+    if not USER or not PASSWORD:
+        sys.exit('Set NITO_RPC_COOKIE_FILE or both NITO_RPC_USER and NITO_RPC_PASSWORD')
 
 def rpc(method, params=None):
     payload = json.dumps({"jsonrpc": "1.0", "id": "nito-mining-probe", "method": method, "params": params or []}).encode()
