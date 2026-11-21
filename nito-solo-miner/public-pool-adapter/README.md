@@ -2,7 +2,7 @@
 
 This isolated, dependency-free prototype is **not yet wired into Public Pool's server**. It does not validate shares, consensus, or Nito v4 acceptance.
 
-Run under Node.js 22+:
+This directory has a private CommonJS package manifest with `npm test` and `npm run check` scripts. Run under Node.js 22+:
 
 ```sh
 node --test test/nito-template-adapter.test.js
