@@ -28,6 +28,9 @@ function normalizeNitoTemplate(raw) {
     if (!Number.isSafeInteger(raw[key]) || raw[key] < 0) throw new Error(`${key} must be a non-negative integer`);
   }
   if (!Array.isArray(raw.transactions)) throw new Error('transactions must be an array');
+  if (raw.rules !== undefined && (!Array.isArray(raw.rules) || raw.rules.some(rule => typeof rule !== 'string'))) {
+    throw new Error('rules must be an array of strings');
+  }
 
   const transactions = raw.transactions.map((tx, i) => {
     if (!tx || typeof tx !== 'object') throw new Error(`transactions[${i}] must be an object`);
@@ -38,6 +41,9 @@ function normalizeNitoTemplate(raw) {
     if (tx.hash !== undefined && !HEX_32.test(tx.hash)) throw new Error(`transactions[${i}].hash must be 32-byte hex`);
     if (tx.depends !== undefined && (!Array.isArray(tx.depends) || tx.depends.some(d => !Number.isInteger(d) || d < 1 || d > raw.transactions.length || d === i + 1))) {
       throw new Error(`transactions[${i}].depends contains invalid 1-based indexes`);
+    }
+    if (tx.depends !== undefined && new Set(tx.depends).size !== tx.depends.length) {
+      throw new Error(`transactions[${i}].depends contains duplicate indexes`);
     }
     // Keep the exact original fields and data string; do not decode or rewrite tx bytes.
     return Object.freeze({ ...tx, data: tx.data, depends: Object.freeze([...(tx.depends || [])]) });
