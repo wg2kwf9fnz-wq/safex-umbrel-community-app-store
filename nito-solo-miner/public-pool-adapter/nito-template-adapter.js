@@ -65,7 +65,7 @@ function normalizeNitoTemplate(raw) {
     curtime: raw.curtime,
     mintime: raw.mintime,
     coinbasevalue: raw.coinbasevalue,
-    target: raw.target,
+    target: raw.target.toLowerCase(),
     rules: Object.freeze([...(raw.rules || [])]),
     transactions: Object.freeze(transactions)
   });
