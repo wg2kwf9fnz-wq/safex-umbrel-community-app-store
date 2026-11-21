@@ -37,7 +37,7 @@ test('rejects malformed rules and duplicate dependency indexes', () => {
   assert.throws(() => normalizeNitoTemplate({ ...base, rules: 'segwit' }), /rules must be an array/);
   assert.throws(() => normalizeNitoTemplate({
     ...base,
-    transactions: [{ ...base.transactions[0], depends: [1, 1] }, base.transactions[1]]
+    transactions: [base.transactions[0], { ...base.transactions[1], depends: [1, 1] }]
   }), /duplicate indexes/);
 });
 
