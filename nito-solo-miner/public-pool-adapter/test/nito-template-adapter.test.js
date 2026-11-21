@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, difficultyToTarget, createJsonRpcCall, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -351,6 +351,16 @@ test('network block is submitted even when the pool share target is not met', as
   assert.equal(result.meetsNetworkTarget, true);
   assert.equal(result.submitResult, 'accepted');
   assert.equal(calls, 1);
+});
+
+test('difficulty converts to share targets with Nito diff-one baseline', () => {
+  const diff1 = '00000000ffff0000000000000000000000000000000000000000000000000000';
+  assert.equal(difficultyToTarget(1), diff1);
+  assert.equal(difficultyToTarget('2'), (BigInt('0x' + diff1) / 2n).toString(16).padStart(64, '0'));
+  assert.equal(difficultyToTarget('0.5'), (BigInt('0x' + diff1) * 2n).toString(16).padStart(64, '0'));
+  assert.equal(difficultyToTarget('1e3'), (BigInt('0x' + diff1) / 1000n).toString(16).padStart(64, '0'));
+  assert.throws(() => difficultyToTarget(0), /positive/);
+  assert.throws(() => difficultyToTarget('not-difficulty'), /decimal/);
 });
 
 test('Stratum job requires a valid share target', () => {
