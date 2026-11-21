@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -218,6 +218,36 @@ test('header serializer rejects invalid nonce and compact bits', () => {
   const common = { version: 1, previousblockhash: '11'.repeat(32), merkleRootInternal: Buffer.alloc(32), timestamp: 1, bits: '1d00ffff', nonce: 1 };
   assert.throws(() => serializeMiningHeader({ ...common, nonce: -1 }), /uint32/);
   assert.throws(() => serializeMiningHeader({ ...common, bits: 'bad' }), /bits/);
+});
+
+test('candidate builder assembles header, extranonce coinbase and opaque template txs', () => {
+  const prepared = prepareStratumTemplate(normalizeNitoTemplate(base));
+  const coinbaseParts = serializeCoinbase({
+    scriptSigHex: '0101aabb',
+    outputs: [{ value: 1000, scriptHex: '51' }],
+    extranonceOffsetBytes: 2,
+    extranonceSizeBytes: 2
+  });
+  const candidate = buildCandidateBlockFromShare({
+    preparedTemplate: prepared,
+    coinbaseParts,
+    extranonceHex: 'ccdd',
+    nonce: 7,
+    timestamp: base.curtime
+  });
+  const block = Buffer.from(candidate.blockHex, 'hex');
+  assert.equal(block.subarray(0, 80).toString('hex'), candidate.headerHex);
+  assert.equal(block.subarray(80, 81).toString('hex'), '03');
+  assert.ok(block.toString('hex').includes('0101ccdd'));
+  assert.ok(block.toString('hex').endsWith('deadbeefcafe00'));
+  assert.equal(candidate.blockHashInternalHex, miningHeaderHash(Buffer.from(candidate.headerHex, 'hex')).toString('hex'));
+});
+
+test('candidate builder rejects extranonce mismatch and invalid nonce', () => {
+  const prepared = prepareStratumTemplate(normalizeNitoTemplate(base));
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  assert.throws(() => buildCandidateBlockFromShare({ preparedTemplate: prepared, coinbaseParts: parts, extranonceHex: 'aa', nonce: 1, timestamp: base.curtime }), /length does not match/);
+  assert.throws(() => buildCandidateBlockFromShare({ preparedTemplate: prepared, coinbaseParts: parts, extranonceHex: 'aabb', nonce: -1, timestamp: base.curtime }), /uint32/);
 });
 
 test('candidate block envelope preserves opaque transaction bytes', () => {
