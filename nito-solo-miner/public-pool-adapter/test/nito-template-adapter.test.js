@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, compactSize, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -43,4 +43,20 @@ test('single txid leaf returns its internal byte order', () => {
   const id = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0')).join('');
   const reversed = Array.from({ length: 32 }, (_, i) => (31 - i).toString(16).padStart(2, '0')).join('');
   assert.equal(txidMerkleRootInternal([id]).toString('hex'), reversed);
+});
+
+test('CompactSize encodes the transaction count boundary', () => {
+  assert.equal(compactSize(252).toString('hex'), 'fc');
+  assert.equal(compactSize(253).toString('hex'), 'fdfd00');
+});
+
+test('candidate block envelope preserves opaque transaction bytes', () => {
+  const header = '00'.repeat(80);
+  const coinbase = '0102';
+  const txs = [{ data: 'deadbeef' }, { data: 'cafe00' }];
+  const block = serializeCandidateBlock(header, coinbase, txs);
+  assert.equal(block.subarray(0, 80).toString('hex'), header);
+  assert.equal(block.subarray(80, 81).toString('hex'), '03');
+  assert.equal(block.subarray(81, 83).toString('hex'), coinbase);
+  assert.equal(block.subarray(83).toString('hex'), 'deadbeefcafe00');
 });
