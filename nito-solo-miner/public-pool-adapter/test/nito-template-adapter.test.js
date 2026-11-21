@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, getCoinbaseAuxFlagsHex, encodeCoinbaseHeight, buildCoinbaseScriptSig, buildCoinbaseOutputs, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -41,6 +41,13 @@ test('preserves and validates optional GBT mining metadata', () => {
   assert.throws(() => normalizeNitoTemplate({ ...base, capabilities: 'proposal' }), /capabilities/);
   assert.throws(() => normalizeNitoTemplate({ ...base, default_witness_commitment: 'ab'.repeat(38) }), /38-byte witness commitment script/);
   assert.throws(() => normalizeNitoTemplate({ ...base, default_witness_commitment: '6a24aa21a9ed' + 'ab'.repeat(31) }), /38-byte witness commitment script/);
+});
+
+test('coinbaseaux flags are validated and exposed as raw script bytes', () => {
+  const template = normalizeNitoTemplate({ ...base, coinbaseaux: { flags: 'abcd' } });
+  assert.equal(getCoinbaseAuxFlagsHex(template), 'abcd');
+  assert.equal(getCoinbaseAuxFlagsHex(normalizeNitoTemplate(base)), '');
+  assert.throws(() => normalizeNitoTemplate({ ...base, coinbaseaux: { flags: 'xyz' } }), /hex values/);
 });
 
 test('normalizes target hex case', () => {
