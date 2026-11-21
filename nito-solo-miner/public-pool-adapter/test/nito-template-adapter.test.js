@@ -28,7 +28,7 @@ test('rejects malformed template and malformed transaction bytes', () => {
 test('rejects dependency indexes pointing forward', () => {
   assert.throws(() => normalizeNitoTemplate({
     ...base,
-    transactions: [{ ...base.transactions[0], depends: [2] }, base.transactions[1]] }
+    transactions: [{ ...base.transactions[0], depends: [2] }, base.transactions[1]]
   }), /later transaction/);
 });
 
