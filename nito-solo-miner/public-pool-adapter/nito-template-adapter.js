@@ -292,6 +292,36 @@ function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffe
   return Object.freeze(result);
 }
 
+/** Stratum V1 previous-hash formatting: reverse bytes, then reverse each 4-byte word. */
+function formatStratumPrevHash(previousblockhash) {
+  if (!HEX_32.test(previousblockhash)) throw new Error('previous block hash must be 32-byte hex');
+  const internal = Buffer.from(previousblockhash, 'hex').reverse();
+  for (let i = 0; i < internal.length; i += 4) {
+    const a = internal[i], b = internal[i + 1];
+    internal[i] = internal[i + 3]; internal[i + 1] = internal[i + 2];
+    internal[i + 2] = b; internal[i + 3] = a;
+  }
+  return internal.toString('hex');
+}
+
+/** Format a mining.notify params array using the Public Pool/Stratum V1 field layout. */
+function formatMiningNotifyParams({ jobId, preparedTemplate, coinbaseParts, cleanJobs = false }) {
+  if (typeof jobId !== 'string' || jobId.length === 0) throw new Error('jobId must be a non-empty string');
+  if (!preparedTemplate || !Array.isArray(preparedTemplate.merkleBranch)) throw new Error('prepared template required');
+  if (!coinbaseParts || typeof coinbaseParts.coinbasePart1 !== 'string' || typeof coinbaseParts.coinbasePart2 !== 'string') throw new Error('coinbase parts required');
+  return [
+    jobId,
+    formatStratumPrevHash(preparedTemplate.previousblockhash),
+    coinbaseParts.coinbasePart1,
+    coinbaseParts.coinbasePart2,
+    preparedTemplate.merkleBranch,
+    (preparedTemplate.version >>> 0).toString(16).padStart(8, '0'),
+    preparedTemplate.bits.toLowerCase().padStart(8, '0'),
+    preparedTemplate.timestamp.toString(16).padStart(8, '0'),
+    Boolean(cleanJobs)
+  ];
+}
+
 /** Reassemble split coinbase parts with a miner extranonce and calculate its txid. */
 function assembleCoinbaseFromParts({ coinbasePart1, coinbasePart2, coinbaseStrippedPart1, coinbaseStrippedPart2, extranonceSizeBytes, extranonceHex }) {
   if (![coinbasePart1, coinbasePart2, coinbaseStrippedPart1, coinbaseStrippedPart2].every(s => typeof s === 'string' && /^[0-9a-fA-F]*$/.test(s))) {
@@ -350,4 +380,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
