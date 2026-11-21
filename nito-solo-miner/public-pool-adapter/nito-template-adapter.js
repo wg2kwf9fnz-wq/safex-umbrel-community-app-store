@@ -105,7 +105,7 @@ function txidMerkleRootInternal(txids) {
   while (level.length > 1) {
     if (level.length % 2 === 1) level.push(Buffer.from(level[level.length - 1]));
     const next = [];
-    for (let i = 0; i < level.length; i += 2) next.push(hash256(Buffer.concat([level[i], level[i + 1]])));
+    for (let i = 0; i < level.length; i += 2) next.push(hash256(Buffer.concat([level[i], level[i + 1]]));
     level = next;
   }
   return level[0];
