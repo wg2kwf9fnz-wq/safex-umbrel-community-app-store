@@ -404,7 +404,7 @@ function createSubmitBlockRequest(blockHex) {
  * Assemble a candidate block from a Stratum share's nonce/time/extranonce.
  * Does not verify share difficulty, time policy, version masks, or consensus.
  */
-function buildCandidateBlockFromShare({ preparedTemplate, coinbaseParts, extranonceHex, nonce, timestamp, version }) {
+function buildCandidateHeaderFromShare({ preparedTemplate, coinbaseParts, extranonceHex, nonce, timestamp, version }) {
   if (!preparedTemplate || !Array.isArray(preparedTemplate.transactions) || !Array.isArray(preparedTemplate.merkleBranch)) throw new Error('prepared template required');
   const assembledCoinbase = assembleCoinbaseFromParts({ ...coinbaseParts, extranonceHex });
   const merkleRoot = applyCoinbaseMerkleBranchInternal(assembledCoinbase.txid, preparedTemplate.merkleBranch);
@@ -416,16 +416,20 @@ function buildCandidateBlockFromShare({ preparedTemplate, coinbaseParts, extrano
     bits: preparedTemplate.bits,
     nonce
   });
-  const block = serializeCandidateBlock(header.toString('hex'), assembledCoinbase.rawHex, preparedTemplate.transactions);
   return Object.freeze({
     headerHex: header.toString('hex'),
     merkleRootInternalHex: merkleRoot.toString('hex'),
     coinbaseTxid: assembledCoinbase.txid,
-    blockHex: block.toString('hex'),
+    coinbaseRawHex: assembledCoinbase.rawHex,
     blockHashInternalHex: miningHeaderHash(header).toString('hex')
   });
 }
 
+function buildCandidateBlockFromShare(args) {
+  const headerCandidate = buildCandidateHeaderFromShare(args);
+  const block = serializeCandidateBlock(headerCandidate.headerHex, headerCandidate.coinbaseRawHex, args.preparedTemplate.transactions);
+  return Object.freeze({ ...headerCandidate, blockHex: block.toString('hex') });
+}
 /** Return the proof-of-work header hash as internal byte order. */
 function miningHeaderHash(header) {
   if (!Buffer.isBuffer(header) || header.length !== 80) throw new Error('header must be exactly 80 bytes');
