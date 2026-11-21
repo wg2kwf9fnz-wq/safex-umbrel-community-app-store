@@ -249,6 +249,7 @@ function prepareStratumTemplate(template) {
     previousblockhash: template.previousblockhash,
     previousHashInternal: Buffer.from(template.previousblockhash, 'hex').reverse(),
     timestamp: Math.max(template.curtime, template.mintime),
+    mintime: template.mintime,
     coinbasevalue: template.coinbasevalue,
     target: template.target,
     merkleBranch: Object.freeze(coinbaseMerkleBranchInternal(txids)),
@@ -556,6 +557,7 @@ function createSubmitBlockRequest(blockHex) {
 function buildCandidateHeaderFromShare({ preparedTemplate, coinbaseParts, extranonceHex, nonce, timestamp, version }) {
   if (!preparedTemplate || !Array.isArray(preparedTemplate.transactions) || !Array.isArray(preparedTemplate.merkleBranch)) throw new Error('prepared template required');
   const assembledCoinbase = assembleCoinbaseFromParts({ ...coinbaseParts, extranonceHex });
+  if (!Number.isSafeInteger(timestamp) || timestamp < preparedTemplate.mintime) throw new Error('share timestamp must not be below template mintime');
   const merkleRoot = applyCoinbaseMerkleBranchInternal(assembledCoinbase.txid, preparedTemplate.merkleBranch);
   const header = serializeMiningHeader({
     version: version === undefined ? preparedTemplate.version : version,
