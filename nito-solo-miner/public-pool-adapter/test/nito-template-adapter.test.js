@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -118,6 +118,28 @@ test('prepared Stratum template carries raw transactions and Merkle branches', (
 test('prepared Stratum template uses mintime if curtime is earlier', () => {
   const normalized = normalizeNitoTemplate({ ...base, curtime: base.mintime - 5 });
   assert.equal(prepareStratumTemplate(normalized).timestamp, base.mintime);
+});
+
+test('coinbase serializer places witness data after outputs and returns stripped txid', () => {
+  const cb = serializeCoinbase({ scriptSigHex: '0101', outputs: [{ value: 50, scriptHex: '51' }] });
+  assert.equal(cb.rawHex, '02000000000101' + '00'.repeat(32) + 'ffffffff020101ffffffff01' + '32000000000000000151' + '0120' + '00'.repeat(32) + '00000000');
+  const stripped = Buffer.from(cb.strippedHex, 'hex');
+  const txid = require('node:crypto').createHash('sha256')
+    .update(require('node:crypto').createHash('sha256').update(stripped).digest()).digest().reverse().toString('hex');
+  assert.equal(cb.txid, txid);
+  assert.equal(cb.totalValue, 50);
+});
+
+test('coinbase serializer rejects invalid scriptSig and overpayment', () => {
+  assert.throws(() => serializeCoinbase({ scriptSigHex: '00', outputs: [{ value: 1, scriptHex: '51' }] }), /2..100 bytes/);
+  assert.throws(() => serializeCoinbase({ scriptSigHex: '0101', outputs: [{ value: 101, scriptHex: '51' }], maxValue: 100 }), /exceeds/);
+});
+
+test('coinbase serializer accepts witness commitment as output script', () => {
+  const commitment = Buffer.alloc(32, 0x77);
+  const scriptHex = witnessCommitmentScript(commitment).toString('hex');
+  const cb = serializeCoinbase({ scriptSigHex: '0101', outputs: [{ value: 0, scriptHex }] });
+  assert.ok(cb.rawHex.includes(scriptHex));
 });
 
 test('header serializer writes fields in standard 80-byte layout', () => {
