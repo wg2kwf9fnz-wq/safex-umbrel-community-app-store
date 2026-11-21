@@ -23,6 +23,6 @@ These are serialization and fixture-level helpers, not a complete chain adapter.
 
 ## Verification
 
-GitHub Actions run #317 passed **49 tests** at commit `6b78acf9`, including GBT optional metadata validation, coinbase height script helper, reusable bridge lifecycle, share-target checks, and guarded submission.
+GitHub Actions run #402 passed **52 tests** at commit `99a65841`, including GBT optional metadata validation, coinbase height script helper, payout/witness-commitment output builder, reusable bridge lifecycle, share-target checks, guarded submission, TTL expiry, and work-change invalidation.
 
 No coinbase-height rules, payout-address validation, share difficulty/target validation, version rolling, timestamp policy, block consensus, `submitblock`, or live mining is implemented/verified.
