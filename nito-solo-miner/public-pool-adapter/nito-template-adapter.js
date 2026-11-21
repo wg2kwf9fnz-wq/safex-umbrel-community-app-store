@@ -386,6 +386,23 @@ function hashMeetsTarget(hashInternal, targetHex) {
   return BigInt('0x' + hashDisplay) <= BigInt('0x' + targetHex);
 }
 
+/** Inject an RPC call function to make the Nito template/submission seam testable. */
+function createNitoRpcAdapter(callRpc) {
+  if (typeof callRpc !== 'function') throw new TypeError('callRpc must be a function');
+  return Object.freeze({
+    async getBlockTemplate() {
+      const request = createGetBlockTemplateRequest();
+      const raw = await callRpc(request.method, request.params);
+      return normalizeNitoTemplate(raw);
+    },
+    async submitBlock(candidate) {
+      const blockHex = typeof candidate === 'string' ? candidate : candidate && candidate.blockHex;
+      const request = createSubmitBlockRequest(blockHex);
+      return callRpc(request.method, request.params);
+    }
+  });
+}
+
 /** Build the standard Nito/BIP145 GBT request used by the prototype (no RPC call). */
 function createGetBlockTemplateRequest() {
   return Object.freeze({
@@ -457,4 +474,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest };
