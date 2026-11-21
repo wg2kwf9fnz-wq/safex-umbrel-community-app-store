@@ -9,6 +9,17 @@ Reviewed source commit: `96a9202c11de2c6fc8d41155e2e779912a476dc7`
 
 Do not patch floating upstream branches. Keep GPL-3.0 notices and provide source for the adapted fork.
 
+## Nito v4.0 source verification (2026-11-21)
+
+Inspected the repository's `v4.0` source, rather than relying only on v3:
+- `src/primitives/block.cpp`: `CBlockHeader::GetHash()` uses `HashWriter{} << *this`.
+- `src/consensus/merkle.cpp`: txid block Merkle root uses `GetHash()`; witness root sets coinbase leaf null and uses `GetWitnessHash()` for remaining transactions.
+- `src/rpc/mining.cpp`: GBT emits raw `data`, `txid`, `hash` (witness hash), and `depends`; it also advertises optional `default_witness_commitment`.
+- `src/primitives/transaction.cpp`: txid excludes witness; witness hash includes witness-like data.
+- `src/kernel/chainparams.cpp`: mainnet genesis `nBits=0x1d00ffff`, powLimit, and 60-second target spacing.
+
+This is source-level verification only. No Nito v4 daemon fixture, regtest mining, or block submission has been performed.
+
 ## Concrete upstream seams
 
 ### 1. `src/services/stratum-v1-jobs.service.ts`
