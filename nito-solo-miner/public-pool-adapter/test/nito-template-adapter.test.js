@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -69,6 +69,12 @@ test('witness commitment hashes root with 32-byte reserved value', () => {
     .update(require('node:crypto').createHash('sha256').update(Buffer.concat([root, reserved])).digest()).digest();
   assert.equal(computeWitnessCommitment(wtxids, reserved).toString('hex'), expected.toString('hex'));
   assert.throws(() => computeWitnessCommitment(wtxids, Buffer.alloc(31)), /32 bytes/);
+});
+
+test('witness commitment script includes magic and 32-byte payload', () => {
+  const commitment = Buffer.alloc(32, 0xab);
+  assert.equal(witnessCommitmentScript(commitment).toString('hex'), '6a24aa21a9ed' + 'ab'.repeat(32));
+  assert.throws(() => witnessCommitmentScript(Buffer.alloc(31)), /32 bytes/);
 });
 
 test('coinbase Merkle branch includes sibling path for one template tx', () => {
