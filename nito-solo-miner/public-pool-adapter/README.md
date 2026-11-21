@@ -19,7 +19,7 @@ node --test test/nito-template-adapter.test.js
 - Compact `nBits` target decoding and difficulty-derived share target using Nito v4 mainnet genesis `1d00ffff` as diff-1 baseline.
 - Standard 80-byte header serializer and double-SHA256 hash.
 - Candidate block assembly from share nonce/time/extranonce while concatenating untouched template transaction bytes.
-- Injectable JSON-RPC adapter, private HTTP JSON-RPC client factory, and reusable bridge with bounded/TTL job cache and template-work invalidation.
+- Injectable JSON-RPC adapter, private HTTP JSON-RPC client factory with username/password or cookie-file authentication, and reusable bridge with bounded/TTL job cache and template-work invalidation.
 
 These are serialization and helper-level components, not a complete chain adapter. GBT fixtures are synthetic; source-level Nito v4.0 checks have been performed, but no captured daemon template or regtest acceptance has been verified.
 
