@@ -511,16 +511,26 @@ function hashMeetsTarget(hashInternal, targetHex) {
 }
 
 /** Create a JSON-RPC 1.0 call function for a private node endpoint. Never logs credentials. */
-function createJsonRpcCall({ url, username, password, fetchImpl = globalThis.fetch, timeoutMs = 15000 }) {
+function createJsonRpcCall({ url, username, password, cookieFile, readCookieFile = file => require('node:fs').readFileSync(file, 'utf8'), fetchImpl = globalThis.fetch, timeoutMs = 15000 }) {
   let id = 0;
-  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error('RPC URL must be HTTP(S)');
-  if (typeof username !== 'string' || !username || typeof password !== 'string' || !password) throw new Error('RPC username and password are required');
+  if (typeof url !== 'string' || !/^https?:\\/\\//i.test(url)) throw new Error('RPC URL must be HTTP(S)');
+  const hasUserPass = typeof username === 'string' && username.length > 0 && typeof password === 'string' && password.length > 0;
+  if (!cookieFile && !hasUserPass) throw new Error('RPC credentials or cookieFile are required');
+  if (cookieFile && (typeof cookieFile !== 'string' || typeof readCookieFile !== 'function')) throw new Error('cookieFile and reader must be valid');
   if (typeof fetchImpl !== 'function') throw new TypeError('fetch implementation required');
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new RangeError('timeoutMs must be positive');
-  const authorization = 'Basic ' + Buffer.from(username + ':' + password).toString('base64');
   return async function callRpc(method, params = []) {
     if (typeof method !== 'string' || !method || !Array.isArray(params)) throw new Error('RPC method and params are required');
     const requestId = ++id;
+    let authUser = username, authPassword = password;
+    if (cookieFile) {
+      const cookie = String(readCookieFile(cookieFile)).trim();
+      const separator = cookie.indexOf(':');
+      if (separator <= 0 || separator === cookie.length - 1) throw new Error('RPC cookie file has invalid format');
+      authUser = cookie.slice(0, separator);
+      authPassword = cookie.slice(separator + 1);
+    }
+    const authorization = 'Basic ' + Buffer.from(authUser + ':' + authPassword).toString('base64');
     const response = await fetchImpl(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization },
@@ -535,7 +545,6 @@ function createJsonRpcCall({ url, username, password, fetchImpl = globalThis.fet
     return payload.result;
   };
 }
-
 /** Inject an RPC call function to make the Nito template/submission seam testable. */
 function createNitoRpcAdapter(callRpc) {
   if (typeof callRpc !== 'function') throw new TypeError('callRpc must be a function');
