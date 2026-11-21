@@ -483,13 +483,21 @@ function createNitoRpcAdapter(callRpc) {
 
 /** Minimal server-side bridge state. Transport and connection/auth are supplied by the host pool. */
 class NitoStratumBridge {
-  constructor(rpcAdapter, { maxJobs = 64 } = {}) {
+  constructor(rpcAdapter, { maxJobs = 64, jobTtlMs = 300000, now = () => Date.now() } = {}) {
     if (!rpcAdapter || typeof rpcAdapter.getBlockTemplate !== 'function' || typeof rpcAdapter.submitBlock !== 'function') throw new TypeError('Nito RPC adapter required');
     if (!Number.isInteger(maxJobs) || maxJobs < 1) throw new RangeError('maxJobs must be positive');
+    if (!Number.isSafeInteger(jobTtlMs) || jobTtlMs < 1) throw new RangeError('jobTtlMs must be positive');
+    if (typeof now !== 'function') throw new TypeError('now must be a function');
     this.rpc = rpcAdapter;
     this.maxJobs = maxJobs;
+    this.jobTtlMs = jobTtlMs;
+    this.now = now;
     this.template = null;
     this.jobs = new Map();
+  }
+  purgeExpiredJobs() {
+    const cutoff = this.now() - this.jobTtlMs;
+    for (const [jobId, entry] of this.jobs) if (entry.createdAt <= cutoff) this.jobs.delete(jobId);
   }
   async refreshTemplate() {
     this.template = await this.rpc.getBlockTemplate();
@@ -497,15 +505,17 @@ class NitoStratumBridge {
   }
   createJob({ jobId, coinbaseParts, shareTarget, cleanJobs = false }) {
     if (!this.template) throw new Error('refreshTemplate must be called before creating jobs');
+    this.purgeExpiredJobs();
     const job = createNitoStratumJob({ template: this.template, jobId, coinbaseParts, shareTarget, cleanJobs });
-    this.jobs.set(jobId, job);
+    this.jobs.set(jobId, { job, createdAt: this.now() });
     while (this.jobs.size > this.maxJobs) this.jobs.delete(this.jobs.keys().next().value);
     return job;
   }
   async submitShare(jobId, share) {
-    const job = this.jobs.get(jobId);
-    if (!job) throw new Error('unknown or expired mining job');
-    return processAndSubmitNitoShare(job, share, this.rpc);
+    this.purgeExpiredJobs();
+    const entry = this.jobs.get(jobId);
+    if (!entry) throw new Error('unknown or expired mining job');
+    return processAndSubmitNitoShare(entry.job, share, this.rpc);
   }
 }
 
