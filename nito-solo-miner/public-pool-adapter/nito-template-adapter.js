@@ -111,4 +111,39 @@ function txidMerkleRootInternal(txids) {
   return level[0];
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal };
+
+/** Bitcoin/Nito-compatible CompactSize encoding for a non-negative count. */
+function compactSize(value) {
+  if (!Number.isSafeInteger(value) || value < 0) throw new RangeError('CompactSize value must be a non-negative safe integer');
+  if (value < 0xfd) return Buffer.from([value]);
+  if (value <= 0xffff) {
+    const out = Buffer.alloc(3); out[0] = 0xfd; out.writeUInt16LE(value, 1); return out;
+  }
+  if (value <= 0xffffffff) {
+    const out = Buffer.alloc(5); out[0] = 0xfe; out.writeUInt32LE(value, 1); return out;
+  }
+  const out = Buffer.alloc(9); out[0] = 0xff; out.writeBigUInt64LE(BigInt(value), 1); return out;
+}
+
+/**
+ * Serialize a candidate block envelope without parsing/re-serializing template
+ * transactions. headerHex must be the final 80-byte header; coinbaseHex must
+ * be the fully assembled coinbase. This does not validate consensus.
+ */
+function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
+  if (typeof headerHex !== 'string' || !/^[0-9a-fA-F]{160}$/.test(headerHex)) throw new Error('header must be exactly 80 bytes of hex');
+  if (typeof coinbaseHex !== 'string' || !HEX_BYTES.test(coinbaseHex)) throw new Error('coinbase must be non-empty transaction hex');
+  if (!Array.isArray(templateTransactions)) throw new TypeError('template transactions must be an array');
+  const rawTxs = templateTransactions.map((tx, i) => {
+    if (!tx || typeof tx.data !== 'string' || !HEX_BYTES.test(tx.data)) throw new Error(`template transaction ${i} has invalid raw hex`);
+    return Buffer.from(tx.data, 'hex');
+  });
+  return Buffer.concat([
+    Buffer.from(headerHex, 'hex'),
+    compactSize(rawTxs.length + 1),
+    Buffer.from(coinbaseHex, 'hex'),
+    ...rawTxs
+  ]);
+}
+
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, compactSize, serializeCandidateBlock };
