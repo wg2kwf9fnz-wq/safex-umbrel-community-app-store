@@ -353,6 +353,20 @@ function serializeMiningHeader({ version, previousblockhash, merkleRootInternal,
   return header;
 }
 
+/** Compare an internal-order proof-of-work hash against a display-order 256-bit target. */
+function hashMeetsTarget(hashInternal, targetHex) {
+  if (!Buffer.isBuffer(hashInternal) || hashInternal.length !== 32) throw new Error('hash must be 32 bytes');
+  if (!HEX_32.test(targetHex)) throw new Error('target must be 32-byte hex');
+  const hashDisplay = Buffer.from(hashInternal).reverse().toString('hex');
+  return BigInt('0x' + hashDisplay) <= BigInt('0x' + targetHex);
+}
+
+/** Produce the JSON-RPC submitblock request payload (no RPC side effects). */
+function createSubmitBlockRequest(blockHex) {
+  if (typeof blockHex !== 'string' || !HEX_BYTES.test(blockHex)) throw new Error('candidate block must be non-empty hex');
+  return Object.freeze({ method: 'submitblock', params: [blockHex] });
+}
+
 /**
  * Assemble a candidate block from a Stratum share's nonce/time/extranonce.
  * Does not verify share difficulty, time policy, version masks, or consensus.
@@ -406,4 +420,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare, hashMeetsTarget, createSubmitBlockRequest };
