@@ -234,6 +234,48 @@ function prepareStratumTemplate(template) {
   });
 }
 
+/**
+ * Serialize a coinbase transaction with one witness-reserved-value item.
+ * ScriptSig bytes are supplied by the caller (including height/extranonce).
+ * This is serialization only; it does not validate consensus or script rules.
+ */
+function serializeCoinbase({ scriptSigHex, outputs, witnessReservedValue = Buffer.alloc(32), version = 2, lockTime = 0, maxValue }) {
+  if (typeof scriptSigHex !== 'string' || !/^(?:[0-9a-fA-F]{2})+$/.test(scriptSigHex)) throw new Error('coinbase scriptSig must be non-empty hex');
+  const scriptSig = Buffer.from(scriptSigHex, 'hex');
+  if (scriptSig.length < 2 || scriptSig.length > 100) throw new Error('coinbase scriptSig must be 2..100 bytes');
+  if (!Array.isArray(outputs) || outputs.length === 0) throw new Error('coinbase outputs must be a non-empty array');
+  if (!Buffer.isBuffer(witnessReservedValue) || witnessReservedValue.length !== 32) throw new Error('witness reserved value must be 32 bytes');
+  if (!Number.isInteger(version) || version < -0x80000000 || version > 0x7fffffff) throw new Error('coinbase version must be int32');
+  if (!Number.isSafeInteger(lockTime) || lockTime < 0 || lockTime > 0xffffffff) throw new Error('coinbase lockTime must be uint32');
+  let total = 0n;
+  const serializedOutputs = outputs.map((output, i) => {
+    if (!output || !Number.isSafeInteger(output.value) || output.value < 0) throw new Error(`coinbase output ${i} value must be non-negative safe integer`);
+    if (typeof output.scriptHex !== 'string' || !/^(?:[0-9a-fA-F]{2})+$/.test(output.scriptHex)) throw new Error(`coinbase output ${i} script must be non-empty hex`);
+    total += BigInt(output.value);
+    const value = Buffer.alloc(8); value.writeBigUInt64LE(BigInt(output.value));
+    const script = Buffer.from(output.scriptHex, 'hex');
+    return Buffer.concat([value, compactSize(script.length), script]);
+  });
+  if (maxValue !== undefined && total > BigInt(maxValue)) throw new Error('coinbase output total exceeds template coinbasevalue');
+  const input = Buffer.concat([
+    Buffer.alloc(32), Buffer.from('ffffffff', 'hex'),
+    compactSize(scriptSig.length), scriptSig,
+    Buffer.from('ffffffff', 'hex')
+  ]);
+  const outputBytes = Buffer.concat([compactSize(outputs.length), ...serializedOutputs]);
+  const versionBytes = Buffer.alloc(4); versionBytes.writeInt32LE(version);
+  const lockBytes = Buffer.alloc(4); lockBytes.writeUInt32LE(lockTime);
+  const stripped = Buffer.concat([versionBytes, compactSize(1), input, outputBytes, lockBytes]);
+  const witness = Buffer.concat([Buffer.from('0001', 'hex'), compactSize(1), compactSize(32), witnessReservedValue]);
+  const full = Buffer.concat([versionBytes, witness, compactSize(1), input, outputBytes, lockBytes]);
+  return Object.freeze({
+    rawHex: full.toString('hex'),
+    strippedHex: stripped.toString('hex'),
+    txid: Buffer.from(hash256(stripped)).reverse().toString('hex'),
+    totalValue: Number(total)
+  });
+}
+
 /** Serialize the standard 80-byte Nito/Bitcoin-style proof-of-work header. */
 function serializeMiningHeader({ version, previousblockhash, merkleRootInternal, timestamp, bits, nonce }) {
   if (!Number.isSafeInteger(version)) throw new Error('header version must be an integer');
@@ -280,4 +322,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
