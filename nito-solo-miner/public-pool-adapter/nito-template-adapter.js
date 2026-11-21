@@ -256,7 +256,8 @@ function prepareStratumTemplate(template) {
 /** Encode a non-negative height as a minimally encoded script number push. */
 function encodeCoinbaseHeight(height) {
   if (!Number.isSafeInteger(height) || height < 0) throw new RangeError('coinbase height must be non-negative safe integer');
-  if (height === 0) return Buffer.from([0]);
+  if (height === 0) return Buffer.from([0x00]);
+  if (height <= 16) return Buffer.from([0x50 + height]);
   let n = BigInt(height), bytes = [];
   while (n > 0n) { bytes.push(Number(n & 0xffn)); n >>= 8n; }
   if (bytes[bytes.length - 1] & 0x80) bytes.push(0);
