@@ -341,7 +341,7 @@ test('network candidate share submits via RPC adapter and non-candidate is not s
   assert.equal(submitted.length, 1);
 });
 
-test('share target rejection prevents submission even if block target is met', async () => {
+test('network block is submitted even when the pool share target is not met', async () => {
   const template = normalizeNitoTemplate({ ...base, target: 'ff'.repeat(32) });
   const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
   const job = createNitoStratumJob({ template, jobId: 'reject-share', coinbaseParts: parts, shareTarget: '00'.repeat(32) });
@@ -349,8 +349,8 @@ test('share target rejection prevents submission even if block target is met', a
   const result = await processAndSubmitNitoShare(job, { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime }, { submitBlock: async () => { calls++; return 'accepted'; } });
   assert.equal(result.meetsShareTarget, false);
   assert.equal(result.meetsNetworkTarget, true);
-  assert.equal(result.submitResult, null);
-  assert.equal(calls, 0);
+  assert.equal(result.submitResult, 'accepted');
+  assert.equal(calls, 1);
 });
 
 test('Stratum job requires a valid share target', () => {
