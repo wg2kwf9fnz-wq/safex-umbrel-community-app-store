@@ -47,7 +47,7 @@ The read-only RPC probe checks that compact bits decode to the advertised full t
 
 ## Next engineering steps
 
-1. Latest GitHub Actions run #624 passed **62 tests**.
+1. Latest GitHub Actions run #649 passed **62 tests**.
 2. Build captured Nito v4/regtest GBT fixtures, including Orchard transactions.
 3. Validate coinbase height/script rules, payout script/address, reward limits, witness commitment and txid/wtxid semantics against the exact Nito daemon.
 4. Integrate the raw-transaction path into a pinned Public Pool fork: job creation, Stratum submission/share validation, candidate block serialization and RPC `submitblock`.
