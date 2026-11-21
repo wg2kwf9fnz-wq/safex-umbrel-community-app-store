@@ -26,6 +26,7 @@ Public Pool is Bitcoin-specific, not a drop-in Nito server. It parses/rebuilds t
 - Implements normalized Stratum template preparation and nine-field `mining.notify` formatting, including previous-hash word order.
 - Implements 80-byte header serialization/hash and candidate-block assembly from share nonce/time/extranonce while preserving opaque GBT transaction bytes.
 - Added a GitHub Actions workflow with syntax checks and Node tests.
+- Added pure RPC payload helpers for `getblocktemplate` and `submitblock`, plus a Stratum job/share bridge that builds `mining.notify` and assembles candidate blocks (no RPC call yet).
 - Added pure RPC payload helpers for `getblocktemplate` and `submitblock` (no RPC call yet).
 
 ## Verification status
