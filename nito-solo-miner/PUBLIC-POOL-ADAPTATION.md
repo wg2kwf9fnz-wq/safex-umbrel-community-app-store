@@ -43,7 +43,7 @@ This confirms the inspected v3.0.0 behavior only. The user's target Nito v4 must
 
 ## Test and CI checkpoint
 
-GitHub Actions run #317 passed **49 tests** at commit `6b78acf9`, including optional GBT metadata validation, coinbase-height script helper, payout/witness-commitment output builder, reusable bridge lifecycle, share-target checks, and guarded submission. Fixtures are synthetic; no live/regtest mining or block submission has been performed.
+GitHub Actions run #331 passed **49 tests** at commit `a569fd43`, including optional GBT metadata validation, coinbase-height script helper, payout/witness-commitment output builder, reusable bridge lifecycle, share-target checks, and guarded submission. Fixtures are synthetic; no live/regtest mining or block submission has been performed.
 
 ## Integration roadmap
 
