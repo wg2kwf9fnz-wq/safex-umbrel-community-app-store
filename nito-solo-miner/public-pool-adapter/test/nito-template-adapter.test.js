@@ -32,6 +32,15 @@ test('rejects dependency indexes pointing forward', () => {
   }), /later transaction/);
 });
 
+
+test('rejects malformed rules and duplicate dependency indexes', () => {
+  assert.throws(() => normalizeNitoTemplate({ ...base, rules: 'segwit' }), /rules must be an array/);
+  assert.throws(() => normalizeNitoTemplate({
+    ...base,
+    transactions: [{ ...base.transactions[0], depends: [1, 1] }, base.transactions[1]]
+  }), /duplicate indexes/);
+});
+
 test('selection requires dependency closure and preserves original order', () => {
   const template = normalizeNitoTemplate(base);
   assert.throws(() => selectTransactions(template, [1]), /missing dependency/);
