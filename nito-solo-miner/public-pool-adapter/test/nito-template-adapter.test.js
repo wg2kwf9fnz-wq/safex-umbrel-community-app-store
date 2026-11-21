@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, hashMeetsTarget, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -218,6 +218,18 @@ test('header serializer rejects invalid nonce and compact bits', () => {
   const common = { version: 1, previousblockhash: '11'.repeat(32), merkleRootInternal: Buffer.alloc(32), timestamp: 1, bits: '1d00ffff', nonce: 1 };
   assert.throws(() => serializeMiningHeader({ ...common, nonce: -1 }), /uint32/);
   assert.throws(() => serializeMiningHeader({ ...common, bits: 'bad' }), /bits/);
+});
+
+test('target comparison interprets header hash in display byte order', () => {
+  assert.equal(hashMeetsTarget(Buffer.alloc(32), '00'.repeat(32)), true);
+  assert.equal(hashMeetsTarget(Buffer.alloc(32, 0xff), '00'.repeat(32)), false);
+  assert.equal(hashMeetsTarget(Buffer.alloc(32, 0xff), 'ff'.repeat(32)), true);
+  assert.throws(() => hashMeetsTarget(Buffer.alloc(31), 'ff'.repeat(32)), /32 bytes/);
+});
+
+test('submitblock payload helper validates and formats raw block hex', () => {
+  assert.deepEqual(createSubmitBlockRequest('deadbeef'), { method: 'submitblock', params: ['deadbeef'] });
+  assert.throws(() => createSubmitBlockRequest('xyz'), /non-empty hex/);
 });
 
 test('candidate builder assembles header, extranonce coinbase and opaque template txs', () => {
