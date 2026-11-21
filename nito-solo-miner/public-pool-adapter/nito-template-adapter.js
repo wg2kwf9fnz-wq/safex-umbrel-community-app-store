@@ -282,6 +282,7 @@ function buildCoinbaseScriptSig({ height, flagsHex = '', extranonceHex, extraHex
 function buildCoinbaseOutputs({ payoutOutputs, template, witnessReservedValue = Buffer.alloc(32) }) {
   if (!Array.isArray(payoutOutputs) || payoutOutputs.length === 0) throw new Error('payoutOutputs must be a non-empty array');
   if (!template || !Array.isArray(template.transactions) || !Number.isSafeInteger(template.coinbasevalue)) throw new Error('normalized GBT template required');
+  if (!Buffer.isBuffer(witnessReservedValue) || witnessReservedValue.length !== 32) throw new Error('witness reserved value must be 32 bytes');
   const wtxids = template.transactions.map(tx => tx.hash);
   if (wtxids.some(hash => !HEX_32.test(hash))) throw new Error('template transaction witness hash missing or invalid');
   const commitment = computeWitnessCommitment(wtxids, witnessReservedValue);
