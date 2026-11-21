@@ -353,6 +353,32 @@ function serializeMiningHeader({ version, previousblockhash, merkleRootInternal,
   return header;
 }
 
+/**
+ * Assemble a candidate block from a Stratum share's nonce/time/extranonce.
+ * Does not verify share difficulty, time policy, version masks, or consensus.
+ */
+function buildCandidateBlockFromShare({ preparedTemplate, coinbaseParts, extranonceHex, nonce, timestamp, version }) {
+  if (!preparedTemplate || !Array.isArray(preparedTemplate.transactions) || !Array.isArray(preparedTemplate.merkleBranch)) throw new Error('prepared template required');
+  const assembledCoinbase = assembleCoinbaseFromParts({ ...coinbaseParts, extranonceHex });
+  const merkleRoot = applyCoinbaseMerkleBranchInternal(assembledCoinbase.txid, preparedTemplate.merkleBranch);
+  const header = serializeMiningHeader({
+    version: version === undefined ? preparedTemplate.version : version,
+    previousblockhash: preparedTemplate.previousblockhash,
+    merkleRootInternal: merkleRoot,
+    timestamp,
+    bits: preparedTemplate.bits,
+    nonce
+  });
+  const block = serializeCandidateBlock(header.toString('hex'), assembledCoinbase.rawHex, preparedTemplate.transactions);
+  return Object.freeze({
+    headerHex: header.toString('hex'),
+    merkleRootInternalHex: merkleRoot.toString('hex'),
+    coinbaseTxid: assembledCoinbase.txid,
+    blockHex: block.toString('hex'),
+    blockHashInternalHex: miningHeaderHash(header).toString('hex')
+  });
+}
+
 /** Return the proof-of-work header hash as internal byte order. */
 function miningHeaderHash(header) {
   if (!Buffer.isBuffer(header) || header.length !== 80) throw new Error('header must be exactly 80 bytes');
@@ -380,4 +406,4 @@ function serializeCandidateBlock(headerHex, coinbaseHex, templateTransactions) {
   ]);
 }
 
-module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock };
+module.exports = { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock, buildCandidateBlockFromShare };
