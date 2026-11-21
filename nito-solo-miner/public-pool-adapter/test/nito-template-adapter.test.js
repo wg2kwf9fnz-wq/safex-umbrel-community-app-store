@@ -460,6 +460,8 @@ test('JSON-RPC client rejects HTTP, mismatched id and RPC errors', async () => {
   await assert.rejects(httpFail('getmininginfo'), /HTTP request failed/);
   const mismatch = createJsonRpcCall({ url: 'http://node', username: 'u', password: 'p', fetchImpl: async () => ({ ok: true, json: async () => ({ id: 2, result: 1 }) }) });
   await assert.rejects(mismatch('getmininginfo'), /id mismatch/);
+  const malformedCookie = createJsonRpcCall({ url: 'http://node', cookieFile: '/bad', readCookieFile: () => 'bad-cookie', fetchImpl: async () => ({ ok: true, json: async () => ({ id: 1, result: 1 }) }) });
+  await assert.rejects(malformedCookie('getblockcount'), /cookie file has invalid format/);
   const rpcError = createJsonRpcCall({ url: 'http://node', username: 'u', password: 'p', fetchImpl: async () => ({ ok: true, json: async () => ({ id: 1, error: { code: -1, message: 'denied' } }) }) });
   await assert.rejects(rpcError('getmininginfo'), /denied/);
 });
