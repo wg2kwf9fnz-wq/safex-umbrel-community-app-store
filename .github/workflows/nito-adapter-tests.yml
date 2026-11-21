@@ -23,6 +23,7 @@ jobs:
         run: |
           node --check nito-template-adapter.js
           node --check test/nito-template-adapter.test.js
+          python3 -m py_compile ../tests/rpc_mining_probe.py
       - name: Run prototype tests
         working-directory: nito-solo-miner/public-pool-adapter
         run: node --test test/nito-template-adapter.test.js
