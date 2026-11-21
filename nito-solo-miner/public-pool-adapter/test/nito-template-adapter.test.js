@@ -457,6 +457,12 @@ test('submitblock payload helper validates and formats raw block hex', () => {
   assert.throws(() => createSubmitBlockRequest('xyz'), /non-empty hex/);
 });
 
+test('candidate builder rejects timestamps below template mintime', () => {
+  const preparedTemplate = prepareStratumTemplate(normalizeNitoTemplate(base));
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  assert.throws(() => buildCandidateBlockFromShare({ preparedTemplate, coinbaseParts: parts, extranonceHex: 'ccdd', nonce: 1, timestamp: base.mintime - 1 }), /below template mintime/);
+});
+
 test('candidate builder assembles header, extranonce coinbase and opaque template txs', () => {
   const prepared = prepareStratumTemplate(normalizeNitoTemplate(base));
   const coinbaseParts = serializeCoinbase({
