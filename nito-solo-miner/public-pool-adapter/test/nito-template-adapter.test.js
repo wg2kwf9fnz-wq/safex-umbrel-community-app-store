@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
+const { normalizeNitoTemplate, selectTransactions, txidMerkleRootInternal, witnessMerkleRootInternal, computeWitnessCommitment, witnessCommitmentScript, serializeCoinbase, assembleCoinbaseFromParts, formatStratumPrevHash, formatMiningNotifyParams, buildCandidateBlockFromShare, createNitoStratumJob, processNitoShare, processAndSubmitNitoShare, NitoStratumBridge, createNitoRpcAdapter, hashMeetsTarget, createGetBlockTemplateRequest, createSubmitBlockRequest, coinbaseMerkleBranchInternal, applyCoinbaseMerkleBranchInternal, compactSize, prepareStratumTemplate, serializeMiningHeader, miningHeaderHash, serializeCandidateBlock } = require('../nito-template-adapter');
 
 const base = {
   previousblockhash: '11'.repeat(32), height: 123, version: 4, bits: '1d00ffff',
@@ -297,6 +297,33 @@ test('target comparison interprets header hash in display byte order', () => {
   assert.equal(hashMeetsTarget(Buffer.alloc(32, 0xff), '00'.repeat(32)), false);
   assert.equal(hashMeetsTarget(Buffer.alloc(32, 0xff), 'ff'.repeat(32)), true);
   assert.throws(() => hashMeetsTarget(Buffer.alloc(31), 'ff'.repeat(32)), /32 bytes/);
+});
+
+test('bridge requires template before job and bounds job cache', async () => {
+  const fakeRpc = { getBlockTemplate: async () => base, submitBlock: async () => null };
+  const bridge = new NitoStratumBridge(fakeRpc, { maxJobs: 2 });
+  assert.throws(() => bridge.createJob({ jobId: 'early', coinbaseParts: {}, shareTarget: 'ff'.repeat(32) }), /refreshTemplate/);
+  await bridge.refreshTemplate();
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  bridge.createJob({ jobId: 'a', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
+  bridge.createJob({ jobId: 'b', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
+  bridge.createJob({ jobId: 'c', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
+  assert.equal(bridge.jobs.size, 2);
+  assert.equal(bridge.jobs.has('a'), false);
+  assert.equal(bridge.jobs.has('c'), true);
+  assert.throws(() => bridge.submitShare('a', {}), /unknown or expired/);
+});
+
+test('bridge forwards valid shares and submits only network-target blocks', async () => {
+  const submissions = [];
+  const bridge = new NitoStratumBridge({ getBlockTemplate: async () => ({ ...base, target: 'ff'.repeat(32) }), submitBlock: async candidate => { submissions.push(candidate); return 'accepted'; } });
+  await bridge.refreshTemplate();
+  const parts = serializeCoinbase({ scriptSigHex: '0101aabb', outputs: [{ value: 1, scriptHex: '51' }], extranonceOffsetBytes: 2, extranonceSizeBytes: 2 });
+  bridge.createJob({ jobId: 'bridge-job', coinbaseParts: parts, shareTarget: 'ff'.repeat(32) });
+  const result = await bridge.submitShare('bridge-job', { extraNonce2: 'ccdd', nonce: 1, timestamp: base.curtime });
+  assert.equal(result.submitResult, 'accepted');
+  assert.equal(submissions.length, 1);
+  assert.ok(submissions[0].blockHex);
 });
 
 test('injected Nito RPC adapter requests and normalizes a GBT', async () => {
