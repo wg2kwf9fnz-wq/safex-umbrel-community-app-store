@@ -8,7 +8,7 @@ category: finance
 
 name: Safex Full Node
 
-version: "7.0.3-umbrel17"
+version: "7.0.3-umbrel18"
 
 tagline: Run a Safex full node with a built-in solo mining stratum server
 
@@ -51,6 +51,8 @@ submitter: wg2kwf9fnz-wq
 submission: https://github.com/wg2kwf9fnz-wq/safex-umbrel-community-app-store
 
 releaseNotes: >-
+  Dashboard layout update: node status and live statistics now have their own Node dashboard tab, while Safex solo-mining and Stratum information are kept in a separate Mining / Stratum tab. The dashboard image is updated to 1.7.3. Existing node, Stratum service configuration, ports and blockchain data are unchanged.
+
   Reliability improvements for nodes during initial blockchain synchronization. Dashboard requests now allow more time for slow node RPC responses, and overlapping node-status and chain-history polling requests are prevented to reduce request pileups and intermittent gateway errors. The Stratum service now allows more time for proxy startup and slow block-template RPC calls, improving resilience while the node is busy syncing.
 
   The dashboard continues to include the "Use 100% of CPU" switch. By default the node uses about half of the available CPU threads at low priority to reduce system load during initial sync; enable the switch to use all available threads for faster synchronization. Changing this setting briefly restarts the node, and synchronization resumes from the existing blockchain data.
