@@ -96,7 +96,7 @@ services:
   dashboard:
     # Self-contained image: nginx config + web page are baked in (no bind-mounted files).
     # Built by .github/workflows/docker-dashboard.yml in wg2kwf9fnz-wq/safex-node.
-    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.7.3@sha256:9efe76469cca1e200bf878d66954731d5436fc2b6257773129032e61f3175de9
+    image: ghcr.io/wg2kwf9fnz-wq/safex-dashboard:1.7.4@sha256:745fc6dbc8fe000d5a381257c4ccf9cf3a32c8d52e12bda84eabf64b650842f8
     restart: unless-stopped
     depends_on:
       - node
